@@ -19,7 +19,7 @@ function readZip($filepath, $ignore, $debug) //name of target, config ignore arr
     {
       if ($debug === true)
       {
-        echo "[Debug]Name: " . zip_entry_name($entry) . "<br>";
+        echo "<br>[Debug]Name: " . zip_entry_name($entry) . "<br>";
         echo "[Debug]File size: " . zip_entry_filesize($entry) . " bytes<br>";
       }
       

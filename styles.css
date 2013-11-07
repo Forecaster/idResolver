@@ -18,3 +18,20 @@ div.option:nth-child(2n+1)
   width: 100%;
   background-color: rgb(205,205,205);
 }
+
+div.target
+{
+  color: red;
+  display: inline-block;
+}
+
+div.needle
+{
+  color: green;
+  display: inline-block;
+}
+
+r
+{
+  color: red;
+}

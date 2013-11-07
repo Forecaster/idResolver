@@ -1,106 +1,130 @@
 <?php
-function readZip($filepath, $ignore, $debug) //name of target, config ignore array, debug mode true/false
+function myVarDump($array)
 {
-  $zip = zip_open($filepath);
+  echo "<br><br>";
+  $dump = print_r($array, true);
   
-  $times_read = 0;
+  $dump = str_replace('{', '<br>{', $dump);
+  $dump = str_replace('}', '<br>}', $dump);
+  $dump = str_replace('(', '<br>(', $dump);
+  $dump = str_replace(')', '<br>)', $dump);
+  $dump = str_replace('[', '<br>[', $dump);
   
-  while (true)
+  echo $dump;
+}
+
+function myReadFile($filepath)
+{
+  $filehandle = fopen($filepath, 'r');
+  
+  $contents = fread($filehandle, filesize($filepath));
+  
+  if ($contents == null)
+    die("[myReadFile]Nothing to return!");
+  else
+    return $contents;
+}
+
+function myReadDir($dirpath, $ignore, $subdir, $debug)
+{
+  $dirhandle = opendir($dirpath);
+  $entry_counter = 0;
+  
+  while (false !== ($entry = readdir($dirhandle)))
   {
-    $entry = zip_read($zip);
-    
-    zip_entry_open($zip, $entry, 'r');
-    
-    if (zip_entry_filesize($entry) == 0) break;
-    
-    $name = zip_entry_name($entry);
-    
-    if (stristr($name, '.cfg') && !in_array($name, $ignore))
+    if ($entry != "." && $entry != "..")
     {
-      if ($debug === true)
+      if ($debug >= 1) echo "[Debug][myReadDir]Now testing \"$entry\":<br>";
+      $entrypath = $dirpath . "/" . $entry;
+      if (is_dir($entrypath) && !isset($subdir))
       {
-        echo "<br>[Debug]Name: " . zip_entry_name($entry) . "<br>";
-        echo "[Debug]File size: " . zip_entry_filesize($entry) . " bytes<br>";
+        if ($debug >= 2) echo "[Debug][myReadDir]===Reading sub-dir: $entry<br>";
+        $newEntries = myReadDir($entrypath, $ignore, $entry);
+        if (count($newEntries) != 0)
+          $entries = array_merge($entries, $newEntries);
+        if ($debug >= 2) echo "[Debug][myReadDir]===Finished reading sub-dir: $entry<br>";
       }
-      
-      $name = str_replace('.cfg', '', $name);
-      $entry_cont = zip_entry_read($entry, zip_entry_filesize($entry));
-      
-      $configs[$name] = $entry_cont;
-      
-      $line = preg_split('/\n|\r/', $entry_cont, -1, PREG_SPLIT_NO_EMPTY);
-      
-      $counter = 0;
-      $total_counter = 0;
-      foreach ($line as $key => $value)
+      else
       {
-        if (stristr($value, '{'))
+        if ((stristr($entry, '.cfg') || stristr($entry, '.conf')) && !in_array($entry, $ignore))
         {
-          if (stristr($value, 'block'))
+          if ($debug >= 3) echo "[Debug][myReadDir]$entry is a cfg file!<br>";
+          if (isset($subdir))
           {
-            $type = "block";
-            if ($debug === true)
-              echo "[Debug]!!! Found valid config block! ($value)<br>";
-          }
-          elseif (stristr($value, 'item'))
-          {
-            $type = "item";
-            if ($debug === true)
-              echo "[Debug]!!! Found valid config block! ($value)<br>";
+            if ($debug >= 4) echo "[Debug][myReadDir]$entry has subdir, inserting into entries array!<br>";
+            $entries[$entry_counter]['path'] = $subdir . "/" . $entry;
+            $entries[$entry_counter]['name'] = $entry;
           }
           else
           {
-            $type = "invalid";
-            if ($debug === true)
-              echo "[Debug]Found invalid config block! ($value)<br>";
+            if ($debug >= 4) echo "[Debug][myReadDir]$entry has no subdir, inserting into entries array!<br>";
+            $entries[$entry_counter]['path'] = $entry;
+            $entries[$entry_counter]['name'] = $entry;
           }
         }
-        
-        if ($type != "invalid")
-        {
-          if (stristr($value, 'I:'))
-          {
-            if ($debug === true)
-              echo "[Debug]" . $key . " => " . $value . "<br>";
-            $current = explode('=', $value);
-            $configValues[$name][$counter]['type'] = $type;
-            $configValues[$name][$counter]['id'] = $current[0];
-            $configValues[$name][$counter]['value'] = $current[1];
-            $counter++;
-          }
-        }
-        $total_counter++;
+        elseif (!stristr($entry, '.cfg') && $debug >= 2)
+          echo "[Debug][myReadDir]$entry is not a cfg file!<br>";
+        elseif ($debug >= 2)
+          echo "[Debug][myReadDir]$entry was ignored!<br>";
       }
-      
-      if ($debug === true)
-      {
-        echo "Reached end of file. Found $counter ID's in $total_counter lines!<br>";
-        echo "===================<br>";
-      }
-      
-      if ($counter > 0)
-      {
-        $names[] = array('name' => $name, 'amount' => $counter);
-      }
-      $times_read++;
     }
-    elseif ($debug === true)
-      echo "Ignored file $name.<br>===================<br>";
-      
+    
+    $entry_counter++;
   }
   
-  if ($debug === true)
-    echo "Read $times_read files.";
-  
-  return array($times_read, $configs, $configValues, $names);
+  return $entries;
 }
 
-//Returns int $times_read, array $configs, array $configValues and array $names
-//configs has only one level where key is config file name and value is config contents.
-//configValues contain each config file name, these in turn contain each option, which in turn contain the keys 'type', 'id' and 'value'.
-//names contain two levels, first is an int key for each config file name, second level contains 'name' of the file and 'amount' of valid keys that were found within.
+function extractValues($contents, $debug)
+{
+  $line = preg_split('/\n|\r/', $contents, -1, PREG_SPLIT_NO_EMPTY);
+  
+  $counter = 0;
+  $total_counter = 0;
+  foreach ($line as $key => $value)
+  {
+    if (stristr($value, '{'))
+    {
+      if (stristr($value, 'block'))
+      {
+        $type = "block";
+        if ($debug >= 3)
+          echo "[Debug]!!! Found valid config block! ($value)<br>";
+      }
+      elseif (stristr($value, 'item'))
+      {
+        $type = "item";
+        if ($debug >= 3)
+          echo "[Debug]!!! Found valid config block! ($value)<br>";
+      }
+      else
+      {
+        $type = "invalid";
+        if ($debug >= 3)
+          echo "[Debug]Found invalid config block! ($value)<br>";
+      }
+    }
+    
+    if ($type != "invalid")
+    {
+      if (stristr($value, 'I:'))
+      {
+        if ($debug >= 4)
+          echo "[Debug]" . $key . " => " . $value . "<br>";
+        $current = explode('=', $value);
+        $configValues[$counter]['type'] = $type;
+        $configValues[$counter]['id'] = $current[0];
+        $configValues[$counter]['value'] = $current[1];
+        $counter++;
+      }
+    }
+    $total_counter++;
+  }
+  
+  return $configValues;
+}
 
-function recieveFile($filehandle) //name of file in form
+function recieveFile($filehandle) //name of file input
 {
   if (strlen($_FILES[$filehandle]['name']) < 1)
   {
@@ -108,10 +132,10 @@ function recieveFile($filehandle) //name of file in form
   }
   else
   {
-    ##Generate key
+    ##Generate filekey
     $timestamp = time();
     
-    $key = hash('md5', $_FILES[$filehandle]['name'] . time());
+    $filekey = hash('md5', $_FILES[$filehandle]['name'] . time());
     
     ##File handling:
     if (stristr($_FILES[$filehandle]['name'], '.zip'))
@@ -120,7 +144,7 @@ function recieveFile($filehandle) //name of file in form
       {
         if ($_FILES[$filehandle]['error'] == 0)
         {
-          $filename = $key . '.zip';
+          $filename = $filekey . '.zip';
           
           if (!file_exists('archives/' . $filename))
           {
@@ -154,17 +178,38 @@ function recieveFile($filehandle) //name of file in form
     }
   }
   
-  return array($error, $key);
+  return array($error, $filekey);
 }
 
-function addFile($addpath, $targetpath)
+function extractZip($filepath, $targetpath) //name of target, extract to path
+{
+  $zip = new ZipArchive;
+  
+  if ($zip->open($filepath) === true)
+  {
+    if ($zip->extractTo($targetpath) === true)
+    {
+      $zip->close();
+      return true;
+    }
+    else
+    {
+      $zip->close();
+      return false;
+    }
+  }
+  else
+    return false;
+}
+
+function addFile($addpath, $targetpath, $newname)
 {
   $zip = new ZipArchive;
   $result = $zip->open($targetpath);
   
   if ($result === true)
   {
-    $zip->addFile($addpath);
+    $zip->addFile($addpath, $newname);
     $zip->close();
     return true;
   }
@@ -184,5 +229,17 @@ function isInArray($string, $array)
   }
   
   return false;
+}
+
+function writeToFile($string, $filepath)
+{
+  $filehandle = fopen($filepath, 'r+');
+  
+  $result = fwrite($filehandle, $string);
+  
+  if ($result !== false)
+    return true;
+  else
+    return false;
 }
 ?>

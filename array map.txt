@@ -1,0 +1,15 @@
+$entries
+  ['path']
+  ['name']
+
+$config
+  [int]
+    ['path']
+    ['name']
+    ['contents']
+    ['newContents']
+    ['values']
+      [int]
+        ['type']
+        ['id']
+        ['value']

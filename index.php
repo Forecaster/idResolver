@@ -20,30 +20,32 @@ $ignore[] = "multipart.cfg";
 $ignore[] = "microblocks.cfg";
 $ignore[] = "modstats.cfg";
 $ignore[] = "GenerationManager.cfg";
-$ignore[] = "invTweaks.cfg";
-$ignore[] = "HungerOverhaul.cfg";
 $ignore[] = "NEI.cfg";
 $ignore[] = "NEIServer.cfg";
 $ignore[] = "NEISubset.cfg";
-$ignore[] = "Waila.cfg";
-$ignore[] = "UniversalElectricity.cfg";
-$ignore[] = "InvTweaks.cfg";
 $ignore[] = "WirelessRedstone.cfg";
-$ignore[] = "GregTech.cfg";
-$ignore[] = "DynamicConfig.cfg";
-$ignore[] = "biomegen.cfg";
-$ignore[] = "terraingen.cfg";
-$ignore[] = "misc.cfg";
-$ignore[] = "main.cfg";
-$ignore[] = "modules.cfg";
-$ignore[] = "moon.conf";
-$ignore[] = "mars.conf";
-$ignore[] = "backpacks.conf";
-$ignore[] = "apiculture.conf";
-$ignore[] = "lepidopterology.conf";
-$ignore[] = "common.conf";
-$ignore[] = "pipes.conf";
-$ignore[] = "";
+$ignore[] = "denLib.cfg";
+$ignore[] = "NEI-Mystcraft-Plugin.cfg";
+#$ignore[] = "invTweaks.cfg";
+#$ignore[] = "HungerOverhaul.cfg";
+#$ignore[] = "Waila.cfg";
+#$ignore[] = "UniversalElectricity.cfg";
+#$ignore[] = "InvTweaks.cfg";
+#$ignore[] = "WirelessRedstone.cfg";
+#$ignore[] = "GregTech.cfg";
+#$ignore[] = "DynamicConfig.cfg";
+#$ignore[] = "biomegen.cfg";
+#$ignore[] = "terraingen.cfg";
+#$ignore[] = "misc.cfg";
+#$ignore[] = "main.cfg";
+#$ignore[] = "modules.cfg";
+#$ignore[] = "moon.conf";
+#$ignore[] = "mars.conf";
+#$ignore[] = "backpacks.conf";
+#$ignore[] = "apiculture.conf";
+#$ignore[] = "lepidopterology.conf";
+#$ignore[] = "common.conf";
+#$ignore[] = "pipes.conf";
 }
 
 { ### RESERVED ID'S
@@ -53,7 +55,7 @@ $reservedVanillaItems = array(256,257,258,259,260,261,262,263,264,265,266,267,26
 }
 
 $startblock = 600;
-$startitem = 2270;
+$startitem = 4096;
 
 $maxBlock = 4095;
 $maxItem = 31999;
@@ -97,24 +99,43 @@ $('input[type="checkbox"]', $(this).parent('div')).attr('checked', status);
 {### STEP ONE ###
 if (!isset($_POST['step']) || $_POST['step'] == 1)
 {
+  step(1);
   echo "
-  STEP ONE<br>
-<form action='' method='post' enctype='multipart/form-data'>
-
-<input type=hidden name=step value=2 />
-<input type='file' name='file' />
-
-<input type=submit value='Submit' />
-
-</form>
+  Archive all your files in the config folder as a .zip archive.<br>
+  Upload below:<br>
+  <br>
+  <form action='' method='post' enctype='multipart/form-data'>
+    <input type=hidden name=step value=2 />
+    <input type='file' name='file' />
+    <input type=submit value='Submit' />
+  </form><br>
+  <br>
+  N<span style='font-weight: bold;'>ote that certain mods do not use the forge config format!</span><br>
+  <br>
+  In forge configs block and item id's are kept within block{} and item{} blocks, these are what the resolver is looking for when extracting id's.<br>
+  <br>
+  Certain mods have other names for the blocks, which means the resolver will not be able to tell that there are id's within without being told so.<br>
+  <br>
+  For example chickenbones wireless redstone mod, it uses several custom blocks with different names that do not indicate whether they contain id's or not.<br>
+  <br>
+  There are also other options mixed in with the id's in these blocks that complicate things further.<br>
+  <br>
+  Thus the wirelessredstone.cfg file is ignored.<br>
+  <br>
+  Also ignored are files with any file name extension other than .cfg or .conf<br>
+  <br>
+  <span style='font-weight: bold;'>Ignored files:</span><br>
   ";
+  
+  foreach ($ignore as $value)
+    echo $value . "<br>";
 }
 }
 
 { ### STEP TWO //'application/x-zip-compressed'
 if (@$_POST['step'] == 2)
 {
-  echo "STEP TWO<br>";
+  step(2);
   list($error, $filekey) = recieveFile('file');
   
   session_start();
@@ -131,6 +152,7 @@ if (@$_POST['step'] == 2)
     <br>
     Here you may specify the starting values at which block and item id's will start being assigned.<br>
     Default block: $startblock. Default item: $startitem<br>
+    These will override the above default values. Leave blank to use the defaults above.<br>
    <input type=text size=20 name=startblock placeholder='Starting block ID' />
    <input type=text size=20 name=startitem placeholder='Starting item ID' />";
   
@@ -159,7 +181,12 @@ if (@$_POST['step'] == 2)
     {
       $filepath = "extracted/$filekey/" . $value['path'];
       
-      $config[$key]['contents'] = myReadFile($filepath);
+      $contents = myReadFile($filepath);
+      if (!$contents)
+        echo "[Error]No id's were found in " . $value['name'] . "! Please report this to Forecaster!<br>";
+      else
+        $config[$key]['contents'] = $contents;
+        
       $config[$key]['newContents'] = $config[$key]['contents'];
       
       $config[$key]['values'] = extractValues($config[$key]['contents'], 0);
@@ -238,7 +265,7 @@ if (@$_POST['step'] == 3)
   elseif (isset($_SESSION['startitem']))
     $startitem = $_SESSION['startitem'];
   
-  echo "STEP THREE<br>";
+  step(3);
   echo "<div id=key class=key>" . $_SESSION['filekey'] . "</div><br>";
   
   foreach ($_POST as $key => $value)
@@ -339,23 +366,25 @@ if (@$_POST['step'] == 4)
   $config = $_SESSION['config'];
   $filekey = $_SESSION['filekey'];
   
-  echo "STEP FOUR<br>";
+  step(4);
   echo "<div id=key class=key>" . $filekey . "</div><br>";
   
+  $debug = 0;
   foreach ($config as $key => $value)
   {
     $filepath = "extracted/$filekey/" . $value['path'];
     
     if (writeToFile($value['newContents'], $filepath))
-      echo "Success on " . $value['path'] . "!<br>";
+      if ($debug >= 1) echo "Success on " . $value['path'] . "!<br>";
     else
-      echo "Fail on " . $value['path'] . "!<br>";
+      if ($debug >= 1) echo "Fail on " . $value['path'] . "!<br>";
   }
   
+  /*
   foreach ($config as $key => $value)
   {
-    $addpath = "./extracted/$filekey/" . $value['path'];
-    $targetpath = "./repacked/$filekey.zip";
+    $addpath = "extracted/$filekey/" . $value['path'];
+    $targetpath = "repacked/$filekey.zip";
     
     fopen($targetpath, 'w');
     
@@ -363,11 +392,21 @@ if (@$_POST['step'] == 4)
     
     echo "Adding " . $value['name'] . " from <r>$addpath</r> to <r>$targetpath</r> as <r>$newname</r><br>";
     
-    if (myAddFile($addpath, $targetpath, $newname))
+    if (addFile($config, $targetpath, $newname))
       echo "Success on " . $value['path'] . "!<br>";
     else
       echo "Fail on " . $value['path'] . "!<br>";
-  }
+  }*/
+  
+  $targetpath = "repacked/$filekey.zip";
+  $result = addFiles($filekey, $config, $targetpath, 0);
+  
+  if (!$result)
+    echo "Error while attempting to archive! Please retry!<br>";
+  else
+    echo "Archiving succeeded! You will find your file here: <a href='$targetpath'>[DOWNLOAD]</a><br>
+    <br>
+    Download the file into your config directory (You should make a backup of it first) then right click it and \"Extract here\" (assuming you are using WinRAR) overwrite everything.";
   
   session_write_close();
 }

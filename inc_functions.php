@@ -1,4 +1,26 @@
 <?php
+function step($currentstep)
+{
+  $step[1]['name'] = "STEP 1: Upload";
+  $step[1]['req'] = "Upload zip file";
+  
+  $step[2]['name'] = "STEP 2: Overview";
+  $step[2]['req'] = "Nothing";
+  
+  $step[3]['name'] = "STEP 3: Assigning";
+  $step[3]['req'] = "Nothing";
+  
+  $step[4]['name'] = "STEP 4: Download";
+  $step[4]['req'] = "Nothing";
+  
+  foreach ($step as $key => $value)
+  {
+    if ($key == $currentstep) echo "<div style='font-weight: bold;'>"; else echo "<div>";
+    
+    echo $value['name'] . " - <div class=target>Required for this step: " . $value['req'] . "</div></div>";
+  }
+}
+
 function myVarDump($array)
 {
   echo "<br><br>";
@@ -20,7 +42,7 @@ function myReadFile($filepath)
   $contents = fread($filehandle, filesize($filepath));
   
   if ($contents == null)
-    die("[myReadFile]Nothing to return!");
+    return false;
   else
     return $contents;
 }
@@ -140,7 +162,7 @@ function recieveFile($filehandle) //name of file input
     ##File handling:
     if (stristr($_FILES[$filehandle]['name'], '.zip'))
     {
-      if ($_FILES[$filehandle]['size'] < 200000)
+      if ($_FILES[$filehandle]['size'] < 300000)
       {
         if ($_FILES[$filehandle]['error'] == 0)
         {
@@ -202,22 +224,38 @@ function extractZip($filepath, $targetpath) //name of target, extract to path
     return false;
 }
 
-function myAddFile($addpath, $targetpath, $newname)
+#DEPRECATED
+function addFile($addpath, $targetpath, $newname)
 {
   $zip = new ZipArchive;
   
-  if ($zip->open($targetpath) === true)
-  {
-    if($zip->addFile($addpath, $newname) === true)
-      $status = true;
-    else
-      $status = false;
-    $zip->close();
+  if ($zip->open($targetpath, ZIPARCHIVE::CREATE) !== TRUE) {
+    return false;
   }
-  else
-    $status = false;
-    
-  return $status;
+  
+  $zip->addFile($addpath, $newname);
+  $zip->close();
+  return true;
+}
+
+function addFiles($filekey, $addpaths, $targetpath, $debug)
+{
+  $zip = new ZipArchive;
+  
+  if ($debug >= 1) echo "[Debug]Attempting to open $targetpath<br>";
+  if ($zip->open($targetpath, ZIPARCHIVE::CREATE) !== TRUE) {
+    return false;
+  }
+  
+  foreach ($addpaths as $key => $value)
+  {
+    $sourcepath = "extracted/$filekey/" . $value['path'];
+    $newname = $value['path'];
+    if ($debug >= 1) echo "[Debug]Attempting to add $sourcepath to $targetpath<br>";
+    $zip->addFile($sourcepath, $newname);
+  }
+  $zip->close();
+  return true;
 }
 
 function isInArray($string, $array)
@@ -237,6 +275,11 @@ function isInArray($string, $array)
 function writeToFile($string, $filepath)
 {
   $filehandle = fopen($filepath, 'r+');
+  
+  $result = fwrite($filehandle, "");
+  
+  if ($result === false)
+    return false;
   
   $result = fwrite($filehandle, $string);
   

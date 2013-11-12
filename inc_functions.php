@@ -274,9 +274,7 @@ function isInArray($string, $array)
 
 function writeToFile($string, $filepath)
 {
-  $filehandle = fopen($filepath, 'r+');
-  
-  $result = fwrite($filehandle, "");
+  $filehandle = fopen($filepath, 'w');
   
   if ($result === false)
     return false;

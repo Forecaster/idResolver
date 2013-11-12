@@ -1,19 +1,8 @@
 <?php
 
-session_start();
+$pie['name'] = "strawberry";
 
-if (empty($_SESSION['count'])) {
-   $_SESSION['count'] = 1;
-} else {
-   $_SESSION['count']++;
-}
+$pies[] = $pie;
+
+echo $pies[0]['name'];
 ?>
-
-<p>
-Hello visitor, you have seen this page <?php echo $_SESSION['count']; ?> times.
-</p>
-
-<p>
-To continue, <a href="?<?php echo htmlspecialchars(SID); ?>">click
-here</a>.
-</p>

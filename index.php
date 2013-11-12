@@ -354,8 +354,8 @@ if (@$_POST['step'] == 4)
   
   foreach ($config as $key => $value)
   {
-    $addpath = "extracted/$filekey/" . $value['path'];
-    $targetpath = "repacked/$filekey.zip";
+    $addpath = "./extracted/$filekey/" . $value['path'];
+    $targetpath = "./repacked/$filekey.zip";
     
     fopen($targetpath, 'w');
     
@@ -363,7 +363,7 @@ if (@$_POST['step'] == 4)
     
     echo "Adding " . $value['name'] . " from <r>$addpath</r> to <r>$targetpath</r> as <r>$newname</r><br>";
     
-    if (addFile($addpath, $targetpath, $newname))
+    if (myAddFile($addpath, $targetpath, $newname))
       echo "Success on " . $value['path'] . "!<br>";
     else
       echo "Fail on " . $value['path'] . "!<br>";

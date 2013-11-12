@@ -202,19 +202,22 @@ function extractZip($filepath, $targetpath) //name of target, extract to path
     return false;
 }
 
-function addFile($addpath, $targetpath, $newname)
+function myAddFile($addpath, $targetpath, $newname)
 {
   $zip = new ZipArchive;
-  $result = $zip->open($targetpath);
   
-  if ($result === true)
+  if ($zip->open($targetpath) === true)
   {
-    $zip->addFile($addpath, $newname);
+    if($zip->addFile($addpath, $newname) === true)
+      $status = true;
+    else
+      $status = false;
     $zip->close();
-    return true;
   }
   else
-    return false;
+    $status = false;
+    
+  return $status;
 }
 
 function isInArray($string, $array)

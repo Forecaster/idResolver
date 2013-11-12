@@ -3,22 +3,33 @@ function step($currentstep)
 {
   $step[1]['name'] = "STEP 1: Upload";
   $step[1]['req'] = "Upload zip file";
+  $step[1]['opt'] = "Nothing";
   
   $step[2]['name'] = "STEP 2: Overview";
   $step[2]['req'] = "Nothing";
+  $step[2]['opt'] = "Lock ids, change starting id's";
   
   $step[3]['name'] = "STEP 3: Assigning";
   $step[3]['req'] = "Nothing";
+  $step[3]['opt'] = "Nothing";
   
   $step[4]['name'] = "STEP 4: Download";
   $step[4]['req'] = "Nothing";
+  $step[4]['opt'] = "Download";
   
+  echo "<Table style='border: 1px solid gray;'>";
   foreach ($step as $key => $value)
   {
-    if ($key == $currentstep) echo "<div style='font-weight: bold;'>"; else echo "<div>";
+    if ($key == $currentstep) $class = "step"; else $class = null;
     
-    echo $value['name'] . " - <div class=target>Required for this step: " . $value['req'] . "</div></div>";
+    echo "
+    <TR>
+      <TD class=$class>" . $value['name'] . "</TD>
+      <TD class=$class> | Required for this step: " . $value['req'] . "</TD>
+      <TD class=$class> | Optional for this step: " . $value['opt'] . "</TD>
+    </TR>";
   }
+  echo "</Table>";
 }
 
 function myVarDump($array)

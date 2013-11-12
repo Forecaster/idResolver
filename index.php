@@ -106,8 +106,8 @@ if (!isset($_POST['step']) || $_POST['step'] == 1)
   <br>
   <form action='' method='post' enctype='multipart/form-data'>
     <input type=hidden name=step value=2 />
-    <input type='file' name='file' />
-    <input type=submit value='Submit' />
+    <input type='file' name='file' style='width: 100%; height: 50px; background-color: lightgray;' /><br>
+    <input class=button type=submit value='Next' />
   </form><br>
   <br>
   N<span style='font-weight: bold;'>ote that certain mods do not use the forge config format!</span><br>
@@ -142,30 +142,28 @@ if (@$_POST['step'] == 2)
   
   if ($error == 0)
   {
-    echo "Successfully read archive!<br>
+    echo "
     Your key: <div id=key class=key>" . $filekey . "</div><br>
-    Copy this key. If you accidentally close this window or otherwise is unable to download the file in the last step this key will let you access it.<br>
+    Copy this key. Should you be unable to download the archive in the final step this can be used to recover it. You should also include this when reporting bugs.<br>
     <br>
     Now you may overview the id's that were found in the configs you provided.<br>
-    You may tick the box before any id to lock it. This will exclude this option from being assigned a new id in the next step as well as exclude the same id from the assigning process.
-    <form action='' method=post><br>
+    You may tick the box before any id to lock it. This will exclude this option from being assigned a new id in the next step as well as exclude the same id from the assigning process.<br>
     <br>
     Here you may specify the starting values at which block and item id's will start being assigned.<br>
-    Default block: $startblock. Default item: $startitem<br>
-    These will override the above default values. Leave blank to use the defaults above.<br>
+    These will override the above default values. Leave blank to use the defaults.<br>
+    <form action='' method=post>
    <input type=text size=20 name=startblock placeholder='Starting block ID' />
-   <input type=text size=20 name=startitem placeholder='Starting item ID' />";
-  
+   <input type=text size=20 name=startitem placeholder='Starting item ID' /><br>
+    Default block: $startblock. Default item: $startitem<br>
+   <input class=button type='submit' value='Next' />";
     
     $archivepath = "archives/$filekey.zip";
     $targetpath = "extracted/$filekey";
     
     #list($times_read, $configs, $configValues, $names) = readZip($path . $filename, $ignore, 2);
     
-    if (extractZip($archivepath, $targetpath) === true)
-      echo "<br>Extract: Success!<br><br>";
-    else
-      echo "<br>Extract: Something else happened!<br><br>";
+    if (!extractZip($archivepath, $targetpath))
+      echo "<br><br>[Error]Something went wrong when trying to extract your archive!<br><br>";
     
     $dirpath = "extracted/$filekey";
     
@@ -237,8 +235,7 @@ if (@$_POST['step'] == 2)
       echo "</div>";
       $title_counter++;
     }
-    
-    echo "<input type='submit' value=Submit /></form></div>";
+    echo "</form></div>";
   }
   else
   {
@@ -266,7 +263,18 @@ if (@$_POST['step'] == 3)
     $startitem = $_SESSION['startitem'];
   
   step(3);
-  echo "<div id=key class=key>" . $_SESSION['filekey'] . "</div><br>";
+  echo "<div id=key class=key>Key: " . $_SESSION['filekey'] . "</div><br><br>";
+  
+  echo "
+  <div>
+    You may review the changes made below, then proceed to the final step where your download will be avaliable.
+  </div>
+  <div>
+    <form action='' method=post>
+      <input type=hidden name=step value=4 />
+      <input class=button type=submit value=Next />
+    </form>
+  </div>";
   
   foreach ($_POST as $key => $value)
   {
@@ -345,17 +353,6 @@ if (@$_POST['step'] == 3)
   {
     echo $key . " => " . $value['name'] . "<br>" . nl2br($value['newContents']) . "<br>";
   }*/
-  
-  echo "
-  <div>
-    If these changes look right proceed to writing by clicking the next button. If not go back and make changes.
-  </div>
-  <div>
-    <form action='' method=post>
-      <input type=hidden name=step value=4 />
-      <input type=submit value=Next />
-    </form>
-  </div>";
 }
 }
 

@@ -1,7 +1,9 @@
+The array tracking the extracted files
 $entries
   ['path']
   ['name']
 
+The array containing the configs
 $config
   [int]
     ['path']

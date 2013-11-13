@@ -58,7 +58,7 @@ function myReadFile($filepath)
     return $contents;
 }
 
-function myReadDir($dirpath, $search, $ignore, $subdir, $debug) #max debug 4
+function myReadDir($dirpath, $searchfor, $ignore, $subdir, $debug) #max debug 4
 {
   $dirhandle = opendir($dirpath);
   $entry_counter = 0;
@@ -79,7 +79,7 @@ function myReadDir($dirpath, $search, $ignore, $subdir, $debug) #max debug 4
       }
       else
       {
-        foreach ($search as $value)
+        foreach ($searchfor as $value)
         {
           if ($debug >= 2) echo "[Debug][myReadDir]Checking if $entry is a $value file and not in ignore list!<br>";
           if (stristr($entry, $value) && !in_array($entry, $ignore))

@@ -406,10 +406,10 @@ if (@$_POST['step'] == 4)
   
   $dirpath = "repacked/";
   
-  $search[] = ".zip";
+  $searchfor[] = ".zip";
   $ignore[] = "index.php";
   
-  $archives = myReadDir($dirpath, $search, $ignore, null, 4);
+  $archives = myReadDir($dirpath, $searchfor, $ignore, null, 0);
   
   foreach ($archives as $value)
   {

@@ -72,9 +72,12 @@ function myReadDir($dirpath, $searchfor, $ignore, $subdir, $debug) #max debug 4
       if (is_dir($entrypath) && !isset($subdir))
       {
         if ($debug >= 2) echo "[Debug][myReadDir]===Reading sub-dir: $entry<br>";
-        $newEntries = myReadDir($entrypath, $search, $ignore, $entry);
+        $newEntries = myReadDir($entrypath, $searchfor, $ignore, $entry, $debug);
         if (count($newEntries) != 0)
-          $entries = array_merge($entries, $newEntries);
+          if (isset($entries))
+            $entries = array_merge($entries, $newEntries);
+          else
+            $entries = $newEntries;
         if ($debug >= 2) echo "[Debug][myReadDir]===Finished reading sub-dir: $entry<br>";
       }
       else

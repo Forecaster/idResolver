@@ -26,9 +26,9 @@ $ignore[] = "NEISubset.cfg";
 $ignore[] = "WirelessRedstone.cfg";
 $ignore[] = "denLib.cfg";
 $ignore[] = "NEI-Mystcraft-Plugin.cfg";
+$ignore[] = "Waila.cfg";
 #$ignore[] = "invTweaks.cfg";
 #$ignore[] = "HungerOverhaul.cfg";
-#$ignore[] = "Waila.cfg";
 #$ignore[] = "UniversalElectricity.cfg";
 #$ignore[] = "InvTweaks.cfg";
 #$ignore[] = "WirelessRedstone.cfg";
@@ -104,13 +104,26 @@ if (!isset($_POST['step']) || $_POST['step'] == 1)
   Archive all your files in the config folder as a .zip archive.<br>
   Upload below:<br>
   <br>
+  <div class=target>Note that you must zip the <b>contents</b> of your config folder! Not the config folder itself!</div><br>
+  <br>
   <form action='' method='post' enctype='multipart/form-data'>
     <input type=hidden name=step value=2 />
-    <input type='file' name='file' style='width: 100%; height: 50px; background-color: lightgray;' /><br>
-    <input class=button type=submit value='Next' />
-  </form><br>
+    <input type=file name=file style='width: 100%; height: 50px; background-color: lightgray;' /><br>
+    <input class=button type=submit value='Upload' />
+  </form>
   <br>
-  N<span style='font-weight: bold;'>ote that certain mods do not use the forge config format!</span><br>
+  Or<br>
+  <br>
+  Enter key to access previous file (Not implemented yet):<br>
+  <form action='' method='post'>
+    <input type=hidden name=step value=4 />
+    <input type=text name=key placeholder='Key' style='width: 100%;'/>
+    <input class=button type=submit value='Submit Key' />
+  </form>
+  <br>
+  <span style='font-weight: bold;'>Note that certain mods do not use the forge config format!</span><br>
+  <br>
+  Although not finding any id's in a file will not break anything, the resolver will not be able to change the id's in the file, or take them into account when assigning id's for other files.<br>
   <br>
   In forge configs block and item id's are kept within block{} and item{} blocks, these are what the resolver is looking for when extracting id's.<br>
   <br>
@@ -123,6 +136,8 @@ if (!isset($_POST['step']) || $_POST['step'] == 1)
   Thus the wirelessredstone.cfg file is ignored.<br>
   <br>
   Also ignored are files with any file name extension other than .cfg or .conf<br>
+  <br>
+  What it also will not do is take into account id's that need to be within a specific range, or have surrounding id's clear. You will have to account for this manually.<br>
   <br>
   <span style='font-weight: bold;'>Ignored files:</span><br>
   ";

@@ -58,7 +58,7 @@ function myReadFile($filepath)
     return $contents;
 }
 
-function myReadDir($dirpath, $ignore, $subdir, $debug)
+function myReadDir($dirpath, $search, $ignore, $subdir, $debug) #max debug 4
 {
   $dirhandle = opendir($dirpath);
   $entry_counter = 0;
@@ -72,33 +72,37 @@ function myReadDir($dirpath, $ignore, $subdir, $debug)
       if (is_dir($entrypath) && !isset($subdir))
       {
         if ($debug >= 2) echo "[Debug][myReadDir]===Reading sub-dir: $entry<br>";
-        $newEntries = myReadDir($entrypath, $ignore, $entry);
+        $newEntries = myReadDir($entrypath, $search, $ignore, $entry);
         if (count($newEntries) != 0)
           $entries = array_merge($entries, $newEntries);
         if ($debug >= 2) echo "[Debug][myReadDir]===Finished reading sub-dir: $entry<br>";
       }
       else
       {
-        if ((stristr($entry, '.cfg') || stristr($entry, '.conf')) && !in_array($entry, $ignore))
+        foreach ($search as $value)
         {
-          if ($debug >= 3) echo "[Debug][myReadDir]$entry is a cfg file!<br>";
-          if (isset($subdir))
+          if ($debug >= 2) echo "[Debug][myReadDir]Checking if $entry is a $value file and not in ignore list!<br>";
+          if (stristr($entry, $value) && !in_array($entry, $ignore))
           {
-            if ($debug >= 4) echo "[Debug][myReadDir]$entry has subdir, inserting into entries array!<br>";
-            $entries[$entry_counter]['path'] = $subdir . "/" . $entry;
-            $entries[$entry_counter]['name'] = $entry;
+            if ($debug >= 3) echo "[Debug][myReadDir]$entry is a valid file!<br>";
+            if (isset($subdir))
+            {
+              if ($debug >= 4) echo "[Debug][myReadDir]$entry has subdir, inserting into entries array!<br>";
+              $entries[$entry_counter]['path'] = $subdir . "/" . $entry;
+              $entries[$entry_counter]['name'] = $entry;
+            }
+            else
+            {
+              if ($debug >= 4) echo "[Debug][myReadDir]$entry has no subdir, inserting into entries array!<br>";
+              $entries[$entry_counter]['path'] = $entry;
+              $entries[$entry_counter]['name'] = $entry;
+            }
           }
-          else
-          {
-            if ($debug >= 4) echo "[Debug][myReadDir]$entry has no subdir, inserting into entries array!<br>";
-            $entries[$entry_counter]['path'] = $entry;
-            $entries[$entry_counter]['name'] = $entry;
-          }
+          elseif (!stristr($entry, $value) && $debug >= 2)
+            echo "[Debug][myReadDir]$entry is not a valid file!<br>";
+          elseif ($debug >= 2)
+            echo "[Debug][myReadDir]$entry was ignored!<br>";
         }
-        elseif (!stristr($entry, '.cfg') && $debug >= 2)
-          echo "[Debug][myReadDir]$entry is not a cfg file!<br>";
-        elseif ($debug >= 2)
-          echo "[Debug][myReadDir]$entry was ignored!<br>";
       }
     }
     
@@ -108,7 +112,7 @@ function myReadDir($dirpath, $ignore, $subdir, $debug)
   return $entries;
 }
 
-function extractValues($contents, $debug)
+function extractValues($contents, $debug) #max debug 4
 {
   $line = preg_split('/\n|\r/', $contents, -1, PREG_SPLIT_NO_EMPTY);
   
@@ -249,7 +253,7 @@ function addFile($addpath, $targetpath, $newname)
   return true;
 }
 
-function addFiles($filekey, $addpaths, $targetpath, $debug)
+function addFiles($filekey, $addpaths, $targetpath, $debug) #max debug 1
 {
   $zip = new ZipArchive;
   
@@ -296,5 +300,16 @@ function writeToFile($string, $filepath)
     return true;
   else
     return false;
+}
+
+function rrmdir($dir)
+{
+  foreach(glob($dir . '/*') as $file) {
+    if(is_dir($file))
+      rrmdir($file);
+    else
+      unlink($file);
+  }
+  rmdir($dir);
 }
 ?>

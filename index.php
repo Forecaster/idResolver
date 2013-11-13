@@ -167,7 +167,10 @@ if (@$_POST['step'] == 2)
     
     $dirpath = "extracted/$filekey";
     
-    $entries = myReadDir($dirpath, $ignore, null, 0);
+    $search[] = ".cfg";
+    $search[] = ".conf";
+    
+    $entries = myReadDir($dirpath, $search, $ignore, null, 0);
     
     foreach ($entries as $key => $value)
     {
@@ -398,12 +401,33 @@ if (@$_POST['step'] == 4)
   $targetpath = "repacked/$filekey.zip";
   $result = addFiles($filekey, $config, $targetpath, 0);
   
+  rrmdir("extracted/$filekey");
+  unlink("archives/$filekey" . ".zip");
+  
+  $dirpath = "repacked/";
+  
+  $search[] = ".zip";
+  $ignore[] = "index.php";
+  
+  $archives = myReadDir($dirpath, $search, $ignore, null, 4);
+  
+  foreach ($archives as $value)
+  {
+    $name = "repacked/" . $value['name'];
+    $datetime = filemtime($name);
+    if ($datetime !== false)
+      if (($datetime + 86400) < time())
+        unlink($name);
+  }
+  
   if (!$result)
     echo "Error while attempting to archive! Please retry!<br>";
   else
     echo "Archiving succeeded! You will find your file here: <a href='$targetpath'>[DOWNLOAD]</a><br>
     <br>
-    Download the file into your config directory (You should make a backup of it first) then right click it and \"Extract here\" (assuming you are using WinRAR) overwrite everything.";
+    Download the file into your config directory (You should make a backup of it first) then right click it and \"Extract here\" (assuming you are using WinRAR) overwrite everything.<br>
+    <br>
+    Should you need to redownload the file later it will remain for 24h. Use your key in step one to gain access to it, or give access to someone else.";
   
   session_write_close();
 }

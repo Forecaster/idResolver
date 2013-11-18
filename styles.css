@@ -59,3 +59,21 @@ r
   border-color: green;
   border-width: 2px;
 }
+
+.button2
+{
+  position: relative;
+  width: 33%;
+  color: #FFF;
+  text-decoration: none;
+  background-color: green;
+  font-weight: 900;
+  font-size: 2em;
+  padding: 5px;
+  /*width: 134px;*/
+  -moz-border-radius: 8px;
+  -webkit-border-radius: 8px;
+  border-radius: 8px;
+  border-color: green;
+  border-width: 2px;
+}

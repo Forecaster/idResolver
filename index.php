@@ -27,26 +27,16 @@ $ignore[] = "WirelessRedstone.cfg";
 $ignore[] = "denLib.cfg";
 $ignore[] = "NEI-Mystcraft-Plugin.cfg";
 $ignore[] = "Waila.cfg";
-#$ignore[] = "invTweaks.cfg";
-#$ignore[] = "HungerOverhaul.cfg";
-#$ignore[] = "UniversalElectricity.cfg";
-#$ignore[] = "InvTweaks.cfg";
-#$ignore[] = "WirelessRedstone.cfg";
-#$ignore[] = "GregTech.cfg";
-#$ignore[] = "DynamicConfig.cfg";
-#$ignore[] = "biomegen.cfg";
-#$ignore[] = "terraingen.cfg";
-#$ignore[] = "misc.cfg";
-#$ignore[] = "main.cfg";
-#$ignore[] = "modules.cfg";
-#$ignore[] = "moon.conf";
-#$ignore[] = "mars.conf";
-#$ignore[] = "backpacks.conf";
-#$ignore[] = "apiculture.conf";
-#$ignore[] = "lepidopterology.conf";
-#$ignore[] = "common.conf";
-#$ignore[] = "pipes.conf";
+$ignore[] = "powersuits-keybinds.cfg";
 }
+
+{ ### PRE SHIFTED CONFIGS
+$ignoreShift[] = "factorization.cfg";
+}
+
+$blockBlocks = array('block {');
+
+$itemBlocks = array('item {', 'equipables {', 'logic {', '"patterns and misc" {', '"tool parts" {', 'tools {');
 
 { ### RESERVED ID'S
 $reservedVanillaBlocks = array(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,164,165,166,167,168,169,170,171,172,173);
@@ -59,20 +49,6 @@ $startitem = 4096;
 
 $maxBlock = 4095;
 $maxItem = 31999;
-
-#list($matches, $config, $names) = readZip("config.zip", $ignore, true);
-
-/* foreach ($names as $key => $value)
-{
-  echo $key . " => " . $value['name'] . " => " . $value['amount'] . "<br>";
-}
-
-foreach ($names as $key => $name)
-{
-  foreach ($config[$name['name']] as $key2 => $contents)
-    echo $contents['id'] . "<br>";
-} */
-
 ?>
 <script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js" /></script>
 
@@ -96,18 +72,47 @@ $('input[type="checkbox"]', $(this).parent('div')).attr('checked', status);
 
 <?php
 
-{### STEP ONE ###
-if (!isset($_POST['step']) || $_POST['step'] == 1)
 {
-  step(1);
+$step = $_POST['step'];
+if (!isset($step) || $step == 'mode')
+{
+  if (!isset($step))
+    $step = 'mode';
+
+  step($step);
+  
   echo "
-  Archive all your files in the config folder as a .zip archive.<br>
-  Upload below:<br>
-  <br>
-  <div class=target>Note that you must zip the <b>contents</b> of your config folder! Not the config folder itself!</div><br>
+  <div>
+    <form action='' method=post>
+      <input type=hidden name=step value='upload' />
+      <input class=button2 type=submit value='ID Mode' />
+    </form>
+  </div>
+  <div>
+    <form action='' method=post>
+      <input class=button2 type=submit value='Biome Mode' disabled style='background-color: gray;'/>
+    </form>
+  </div>
+  <div>
+    <form action='' method=post>
+      <input class=button2 type=submit value='Settings Mode' disabled style='background-color: gray;'/>
+    </form>
+  </div>";
+}
+}
+
+{
+$step = $_POST['step'];
+if ($step == 'upload')
+{
+  
+  step($step);
+  echo "
+  <div style='font-size: 24pt; font-weight: bold;'>Archive all your files in the config folder as a .zip archive.</div>
+  <div style='font-size: 18pt; font-weight: bold;'>Upload below:</div>
   <br>
   <form action='' method='post' enctype='multipart/form-data'>
-    <input type=hidden name=step value=2 />
+    <input type=hidden name=step value='overview' />
     <input type=file name=file style='width: 100%; height: 50px; background-color: lightgray;' /><br>
     <input class=button type=submit value='Upload' />
   </form>
@@ -147,10 +152,11 @@ if (!isset($_POST['step']) || $_POST['step'] == 1)
 }
 }
 
-{ ### STEP TWO //'application/x-zip-compressed'
-if (@$_POST['step'] == 2)
 {
-  step(2);
+$step = $_POST['step'];
+if ($step == 'overview')
+{
+  step($step);
   list($error, $filekey) = recieveFile('file');
   
   session_start();
@@ -165,11 +171,10 @@ if (@$_POST['step'] == 2)
     You may tick the box before any id to lock it. This will exclude this option from being assigned a new id in the next step as well as exclude the same id from the assigning process.<br>
     <br>
     Here you may specify the starting values at which block and item id's will start being assigned.<br>
-    These will override the above default values. Leave blank to use the defaults.<br>
+    These will override the default values. Leave blank to use the defaults.<br>
     <form action='' method=post>
-   <input type=text size=20 name=startblock placeholder='Starting block ID' />
-   <input type=text size=20 name=startitem placeholder='Starting item ID' /><br>
-    Default block: $startblock. Default item: $startitem<br>
+   <input type=text size=40 name=startblock placeholder='Starting block ID (Default: $startblock)' />
+   <input type=text size=40 name=startitem placeholder='Starting item ID (Default: $startitem)' /><br>
    <input class=button type='submit' value='Next' />";
     
     $archivepath = "archives/$filekey.zip";
@@ -184,6 +189,7 @@ if (@$_POST['step'] == 2)
     
     $search[] = ".cfg";
     $search[] = ".conf";
+    $search[] = ".txt";
     
     $entries = myReadDir($dirpath, $search, $ignore, null, 0);
     
@@ -193,19 +199,34 @@ if (@$_POST['step'] == 2)
       $config[$key]['name'] = $value['name'];
     }
     
-    foreach ($config as $key => $value)
+    foreach ($config as $configKey => $configValue)
     {
-      $filepath = "extracted/$filekey/" . $value['path'];
+      $filepath = "extracted/$filekey/" . $configValue['path'];
       
       $contents = myReadFile($filepath);
       if (!$contents)
-        echo "[Error]No id's were found in " . $value['name'] . "! Please report this to Forecaster!<br>";
+        echo "[Error]No id's were found in " . $configValue['path'] . "! Please report this to Forecaster!<br>";
       else
-        $config[$key]['contents'] = $contents;
+        $config[$configKey]['contents'] = $contents;
         
-      $config[$key]['newContents'] = $config[$key]['contents'];
+      $config[$configKey]['newContents'] = $config[$configKey]['contents'];
       
-      $config[$key]['values'] = extractValues($config[$key]['contents'], 0);
+      echo "[Debug]Reading file " . $configValue['name'] . ":<br>";
+      
+      if (!in_array($configValue['name'], $ignoreShift))
+      {
+        echo "[Debug]Shifted " . $configValue['name'] . "<br>";
+        $shift = 256;
+        $config[$configKey]['shifted'] = 256;
+      }
+      else
+      {
+        echo "[Debug]Ignored shift on " . $configValue['name'] . "<br>";
+        $shift = 0;
+        $config[$configKey]['shifted'] = 0;
+      }
+      
+      $config[$configKey]['values'] = extractValues($config[$configKey]['contents'], $blockBlocks, $itemBlocks, $shift, 0);
     }
     
     /*foreach ($config as $key => $value)
@@ -227,7 +248,7 @@ if (@$_POST['step'] == 2)
     $value_counter = 1;
     
     echo "<div id=configs style='border: 1px solid black;'><input type=checkbox name=all id=all /><label for=all> All </label>
-    <input type=hidden name=step value=3 />
+    <input type=hidden name=step value='assigning' />
     <input type=hidden name=key value='$filekey' />";
     foreach ($config as $key => $value)
     {
@@ -237,10 +258,10 @@ if (@$_POST['step'] == 2)
       
       echo "
       <div id=" . $name . " style='border: 1px dashed black;'>
-      <div><input type=checkbox name='title_$title_counter' id='title_$title_counter' /><label for='title_$title_counter'>" . $name . "</div>";
+      <div><input type=checkbox name='title_$title_counter' id='title_$title_counter' /><label for='title_$title_counter'>" . $path . "</div>";
       foreach ($values as $key2 => $value2)
       {
-        $id = str_replace(' ', '', $value2['id']);
+        $id = trim($value2['id']);
         $type = $value2['type'];
         $idvalue = $value2['value'];
         
@@ -262,8 +283,9 @@ if (@$_POST['step'] == 2)
 }
 }
 
-{ ### STEP THREE
-if (@$_POST['step'] == 3)
+{
+$step = $_POST['step'];
+if ($step == 'assigning')
 {
   session_start();
   #session_id(1);
@@ -280,7 +302,7 @@ if (@$_POST['step'] == 3)
   elseif (isset($_SESSION['startitem']))
     $startitem = $_SESSION['startitem'];
   
-  step(3);
+  step($step);
   echo "<div id=key class=key>Key: " . $_SESSION['filekey'] . "</div><br><br>";
   
   echo "
@@ -289,7 +311,7 @@ if (@$_POST['step'] == 3)
   </div>
   <div>
     <form action='' method=post>
-      <input type=hidden name=step value=4 />
+      <input type=hidden name=step value='download' />
       <input class=button type=submit value=Next />
     </form>
   </div>";
@@ -308,19 +330,19 @@ if (@$_POST['step'] == 3)
   
   ### BLOCK ID ASSIGNING ###
   echo "=====Starting block assign!<br>";
-  foreach ($config as $key => $value)
+  foreach ($config as $configKey => $configValue)
   {
-    foreach ($value['values'] as $key2 => $value2)
+    foreach ($configValue['values'] as $configValueValue)
     {
-      if ($value2['type'] == "block")
+      if ($configValueValue['type'] == "block")
       {
-        if (!in_array($value2['id'] . "=" . $value2['value'], $locked))
+        if (!in_array($configValueValue['id'] . "=" . $configValueValue['value'], $locked))
         {
           if (!in_array($newblockidcounter, $reservedVanillaItems))
           {
-            $target = $value2['id'] . "=" . $value2['value'];
-            $needle = $value2['id'] . "=" . $newblockidcounter;
-            $config[$key]['newContents'] = str_replace($target, $needle, $config[$key]['newContents']);
+            $target = $configValueValue['id'] . "=" . $configValueValue['value'];
+            $needle = $configValueValue['id'] . "=" . $newblockidcounter;
+            $config[$configKey]['newContents'] = str_replace($target, $needle, $config[$configKey]['newContents']);
             echo "Changed <div class=target>$target</div> to <div class=needle>$needle</div> <br>";
             $newblockidcounter++;
           }
@@ -330,26 +352,33 @@ if (@$_POST['step'] == 3)
         else
           echo "Ignored locked option.<br>";
       }
-      else
-        echo "Ignored non-block.<br>";
+      #else
+        #echo "Ignored non-block.<br>";
     }
   }
   
   ### ITEM ID ASSIGNING ###
   echo "=====Starting item assign!<br>";
-  foreach ($config as $key => $value)
+  foreach ($config as $configKey => $configValue)
   {
-    foreach ($value['values'] as $key2 => $value2)
+    foreach ($configValue['values'] as $configValueValue)
     {
-      if ($value2['type'] == "item")
+      if ($configValueValue['type'] == "item")
       {
-        if (!in_array($value2['id'] . "=" . $value2['value'], $locked))
+        if (!in_array($configValueValue['id'] . "=" . $configValueValue['value'], $locked))
         {
           if (!in_array($newitemidcounter, $reservedVanillaItems))
           {
-            $target = $value2['id'] . "=" . $value2['value'];
-            $needle = $value2['id'] . "=" . $newitemidcounter;
-            $config[$key]['newContents'] = str_replace($target, $needle, $config[$key]['newContents']);
+            $target = $configValueValue['id'] . "=" . $configValueValue['value'];
+            
+            echo "[Debug]Shift value: " . $configValue['shifted'] . "<br>";
+            
+            if (in_array($configValue['name'], $ignoreShift))
+              $needle = $configValueValue['id'] . "=" . ($newitemidcounter - $configValue['shifted']);
+            else
+              $needle = $configValueValue['id'] . "=" . $newitemidcounter;
+            
+            $config[$configKey]['newContents'] = str_replace($target, $needle, $config[$configKey]['newContents']);
             echo "Changed <div class=target>$target</div> to <div class=needle>$needle</div> <br>";
             $newitemidcounter++;
           }
@@ -359,8 +388,8 @@ if (@$_POST['step'] == 3)
         else
           echo "Ignored locked option.<br>";
       }
-      else
-        echo "Ignored non-item.<br>";
+      #else
+        #echo "Ignored non-item.<br>";
     }
   }
 
@@ -374,14 +403,15 @@ if (@$_POST['step'] == 3)
 }
 }
 
-{ ### STEP FOUR
-if (@$_POST['step'] == 4)
+{
+$step = $_POST['step'];
+if ($step == 'download')
 {
   session_start();
   $config = $_SESSION['config'];
   $filekey = $_SESSION['filekey'];
   
-  step(4);
+  step($step);
   echo "<div id=key class=key>" . $filekey . "</div><br>";
   
   $debug = 0;

@@ -1,21 +1,25 @@
 <?php
 function step($currentstep)
 {
-  $step[1]['name'] = "STEP 1: Upload";
-  $step[1]['req'] = "Upload zip file";
-  $step[1]['opt'] = "Nothing";
+  $step['mode']['name'] = "STEP: Mode";
+  $step['mode']['req'] = "Select mode";
+  $step['mode']['opt'] = "Nothing";
   
-  $step[2]['name'] = "STEP 2: Overview";
-  $step[2]['req'] = "Nothing";
-  $step[2]['opt'] = "Lock ids, change starting id's";
+  $step['upload']['name'] = "STEP: Upload";
+  $step['upload']['req'] = "Upload zip file";
+  $step['upload']['opt'] = "Nothing";
   
-  $step[3]['name'] = "STEP 3: Assigning";
-  $step[3]['req'] = "Nothing";
-  $step[3]['opt'] = "Nothing";
+  $step['overview']['name'] = "STEP: Overview";
+  $step['overview']['req'] = "Nothing";
+  $step['overview']['opt'] = "Lock ids, change starting id's";
   
-  $step[4]['name'] = "STEP 4: Download";
-  $step[4]['req'] = "Nothing";
-  $step[4]['opt'] = "Download";
+  $step['assigning']['name'] = "STEP: Assigning";
+  $step['assigning']['req'] = "Nothing";
+  $step['assigning']['opt'] = "Nothing";
+  
+  $step['download']['name'] = "STEP: Download";
+  $step['download']['req'] = "Nothing";
+  $step['download']['opt'] = "Download";
   
   echo "<Table style='border: 1px solid gray;'>";
   foreach ($step as $key => $value)
@@ -68,11 +72,13 @@ function myReadDir($dirpath, $searchfor, $ignore, $subdir, $debug) #max debug 4
     if ($entry != "." && $entry != "..")
     {
       if ($debug >= 1) echo "[Debug][myReadDir]Now testing \"$entry\":<br>";
+      
       $entrypath = $dirpath . "/" . $entry;
-      if (is_dir($entrypath) && !isset($subdir))
+      if ($debug >= 2) echo "[Debug][myReadDir]Testing if $entrypath is a directory<br>";
+      if (is_dir($entrypath))
       {
         if ($debug >= 2) echo "[Debug][myReadDir]===Reading sub-dir: $entry<br>";
-        $newEntries = myReadDir($entrypath, $searchfor, $ignore, $entry, $debug);
+        $newEntries = myReadDir($entrypath, $searchfor, $ignore, $subdir."/".$entry, $debug);
         if (count($newEntries) != 0)
           if (isset($entries))
             $entries = array_merge($entries, $newEntries);
@@ -90,13 +96,13 @@ function myReadDir($dirpath, $searchfor, $ignore, $subdir, $debug) #max debug 4
             if ($debug >= 3) echo "[Debug][myReadDir]$entry is a valid file!<br>";
             if (isset($subdir))
             {
-              if ($debug >= 4) echo "[Debug][myReadDir]$entry has subdir, inserting into entries array!<br>";
+              if ($debug >= 4) echo "[Debug][myReadDir]$entry has subdir, inserting into entries array as $subdir/$entry!<br>";
               $entries[$entry_counter]['path'] = $subdir . "/" . $entry;
               $entries[$entry_counter]['name'] = $entry;
             }
             else
             {
-              if ($debug >= 4) echo "[Debug][myReadDir]$entry has no subdir, inserting into entries array!<br>";
+              if ($debug >= 4) echo "[Debug][myReadDir]$entry has no subdir, inserting into entries array as $entry!<br>";
               $entries[$entry_counter]['path'] = $entry;
               $entries[$entry_counter]['name'] = $entry;
             }
@@ -115,46 +121,57 @@ function myReadDir($dirpath, $searchfor, $ignore, $subdir, $debug) #max debug 4
   return $entries;
 }
 
-function extractValues($contents, $debug) #max debug 4
+function extractValues($contents, $blockblocks, $itemblocks, $shift, $debug) #max debug 4
 {
+  if (!is_array($blockblocks) || !is_array($itemblocks))
+  {
+    echo "[Error]No search arrays recieved! Will not find anything!<br>";
+    break;
+  }
+
   $line = preg_split('/\n|\r/', $contents, -1, PREG_SPLIT_NO_EMPTY);
   
   $counter = 0;
   $total_counter = 0;
-  foreach ($line as $key => $value)
+  foreach ($line as $key => $lineValue)
   {
-    if (stristr($value, '{'))
+    if (stristr($lineValue, '{'))
     {
-      if (stristr($value, 'block'))
+      if (str_in_array($lineValue, $blockblocks))
       {
         $type = "block";
         if ($debug >= 3)
-          echo "[Debug]!!! Found valid config block! ($value)<br>";
+          echo "[Debug]!!! Found valid config block! ($lineValue)<br>";
       }
-      elseif (stristr($value, 'item'))
+      elseif (str_in_array($lineValue, $itemblocks))
       {
         $type = "item";
         if ($debug >= 3)
-          echo "[Debug]!!! Found valid config block! ($value)<br>";
+          echo "[Debug]!!! Found valid config block! ($lineValue)<br>";
       }
       else
       {
         $type = "invalid";
-        if ($debug >= 3)
-          echo "[Debug]Found invalid config block! ($value)<br>";
+        if ($debug >= 4)
+          echo "[Debug]Found invalid config block! ($lineValue)<br>";
       }
     }
     
     if ($type != "invalid")
     {
-      if (stristr($value, 'I:'))
+      if (stristr($lineValue, 'I:'))
       {
         if ($debug >= 4)
-          echo "[Debug]" . $key . " => " . $value . "<br>";
-        $current = explode('=', $value);
+          echo "[Debug]" . $key . " => " . $lineValue . "<br>";
+        $current = explode('=', $lineValue);
         $configValues[$counter]['type'] = $type;
         $configValues[$counter]['id'] = $current[0];
-        $configValues[$counter]['value'] = $current[1];
+        
+        if ($type == "item")
+          $configValues[$counter]['value'] = $current[1] + $shift;
+        else
+          $configValues[$counter]['value'] = $current[1];
+        
         $counter++;
       }
     }
@@ -180,7 +197,7 @@ function recieveFile($filehandle) //name of file input
     ##File handling:
     if (stristr($_FILES[$filehandle]['name'], '.zip'))
     {
-      if ($_FILES[$filehandle]['size'] < 300000)
+      if ($_FILES[$filehandle]['size'] < 524288)
       {
         if ($_FILES[$filehandle]['error'] == 0)
         {
@@ -315,4 +332,19 @@ function rrmdir($dir)
   }
   rmdir($dir);
 }
+
+function str_in_array($str, $array)
+{
+  foreach ($array as $arrayValue)
+  {
+    if (stristr($str, $arrayValue))
+      return true;
+  }
+}
+
+
+
+
+
+
 ?>

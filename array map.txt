@@ -1,17 +1,19 @@
 The array tracking the extracted files
 $entries
-  ['path']
-  ['name']
+  [key] -> Int
+    ['path'] -> String
+    ['name'] -> String
 
 The array containing the configs
 $config
-  [int]
-    ['path']
-    ['name']
-    ['contents']
-    ['newContents']
-    ['values']
-      [int]
-        ['type']
-        ['id']
-        ['value']
+  [key] -> Int
+    ['path'] -> String
+    ['name'] -> String
+    ['contents'] - String
+    ['newContents'] - String
+    ['shifted'] -> Int
+    ['values'] -> Array
+      [key] - Int
+        ['type'] - String
+        ['id'] - String
+        ['value'] - String

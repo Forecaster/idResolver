@@ -47,7 +47,7 @@ function myVarDump($array)
   $dump = str_replace(')', '<br>)', $dump);
   $dump = str_replace('[', '<br>[', $dump);
   
-  echo $dump;
+  echo nl2br($dump);
 }
 
 function myReadFile($filepath)
@@ -78,7 +78,7 @@ function myReadDir($dirpath, $searchfor, $ignore, $subdir, $debug) #max debug 4
       if (is_dir($entrypath))
       {
         if ($debug >= 2) echo "[Debug][myReadDir]===Reading sub-dir: $entry<br>";
-        $newEntries = myReadDir($entrypath, $searchfor, $ignore, $subdir."/".$entry, $debug);
+        $newEntries = myReadDir($entrypath, $searchfor, $ignore, $entry, $debug);
         if (count($newEntries) != 0)
           if (isset($entries))
             $entries = array_merge($entries, $newEntries);
@@ -340,6 +340,8 @@ function str_in_array($str, $array)
     if (stristr($str, $arrayValue))
       return true;
   }
+  
+  return false;
 }
 
 

@@ -316,41 +316,55 @@ if ($step == 'assigning')
     </form>
   </div>";
   
+  $post_counter = 0;
   foreach ($_POST as $key => $value)
   {
     if (stristr($key, 'I:'))
     {
       #I:"BlockStartingID"=3000
       $locked[] = $key . "=" . $value;
+      $post_counter++;
     }
   }
+  
+  #echo "[Debug]Found $post_counter locked items.<br>";
   
   $newblockidcounter = $startblock;
   $newitemidcounter = $startitem;
   
   ### BLOCK ID ASSIGNING ###
-  echo "=====Starting block assign!<br>";
+  echo "<br>=====Starting block assign!<br>";
   foreach ($config as $configKey => $configValue)
   {
     foreach ($configValue['values'] as $configValueValue)
     {
       if ($configValueValue['type'] == "block")
       {
-        if (!in_array($configValueValue['id'] . "=" . $configValueValue['value'], $locked))
+        echo "[Debug]Checking for \"" . ($configValueValue['id'] . "=" . $configValueValue['value']) . "\" in locked array!<br>";
+        if (!str_in_array(($configValueValue['id'] . "=" . $configValueValue['value']), $locked))
         {
-          if (!in_array($newblockidcounter, $reservedVanillaItems))
+          $assigned = false;
+          while ($assigned === false)
           {
-            $target = $configValueValue['id'] . "=" . $configValueValue['value'];
-            $needle = $configValueValue['id'] . "=" . $newblockidcounter;
-            $config[$configKey]['newContents'] = str_replace($target, $needle, $config[$configKey]['newContents']);
-            echo "Changed <div class=target>$target</div> to <div class=needle>$needle</div> <br>";
-            $newblockidcounter++;
+            echo "[Debug]Checking $newblockidcounter if conflicting with vanilla!<br>";
+            if (!in_array($newblockidcounter, $reservedVanillaBlocks))
+            {
+              $target = $configValueValue['id'] . "=" . $configValueValue['value'];
+              $needle = $configValueValue['id'] . "=" . $newblockidcounter;
+              $config[$configKey]['newContents'] = str_replace($target, $needle, $config[$configKey]['newContents']);
+              echo "[Debug]Changed <div class=target>$target</div> to <div class=needle>$needle</div> <br>";
+              $newblockidcounter++;
+              $assigned = true;
+            }
+            else
+            {
+              echo "[Debug]Ignored id conflicting with vanilla.<br>";
+              $newblockidcounter++;
+            }
           }
-          else
-            echo "Ignored vanilla reserved id.<br>";
         }
         else
-          echo "Ignored locked option.<br>";
+          echo "[Debug]Ignored locked option.<br>";
       }
       #else
         #echo "Ignored non-block.<br>";
@@ -358,32 +372,45 @@ if ($step == 'assigning')
   }
   
   ### ITEM ID ASSIGNING ###
-  echo "=====Starting item assign!<br>";
+  echo "<br>=====Starting item assign!<br>";
   foreach ($config as $configKey => $configValue)
   {
     foreach ($configValue['values'] as $configValueValue)
     {
       if ($configValueValue['type'] == "item")
       {
+        echo "[Debug]Checking for \"" . ($configValueValue['id'] . "=" . $configValueValue['value']) . "\" in locked array!<br>";
         if (!in_array($configValueValue['id'] . "=" . $configValueValue['value'], $locked))
         {
-          if (!in_array($newitemidcounter, $reservedVanillaItems))
+          $assigned = false;
+          while ($assigned === false)
           {
-            $target = $configValueValue['id'] . "=" . $configValueValue['value'];
-            
-            echo "[Debug]Shift value: " . $configValue['shifted'] . "<br>";
-            
-            if (in_array($configValue['name'], $ignoreShift))
-              $needle = $configValueValue['id'] . "=" . ($newitemidcounter - $configValue['shifted']);
+            echo "[Debug]Checking $newitemidcounter if conflicting with vanilla!<br>";
+            if (!in_array($newitemidcounter, $reservedVanillaItems))
+            {
+              if (in_array($configValue['name'], $ignoreShift))
+                $target = $configValueValue['id'] . "=" . ($configValueValue['value'] - $configValue['shifted']);
+              else
+                $target = $configValueValue['id'] . "=" . $configValueValue['value'];
+              
+              echo "[Debug]Shift value: " . $configValue['shifted'] . "<br>";
+              
+              if (in_array($configValue['name'], $ignoreShift))
+                $needle = $configValueValue['id'] . "=" . ($newitemidcounter - $configValue['shifted']);
+              else
+                $needle = $configValueValue['id'] . "=" . $newitemidcounter;
+              
+              $config[$configKey]['newContents'] = str_replace($target, $needle, $config[$configKey]['newContents']);
+              echo "[Debug]Changed <div class=target>$target</div> to <div class=needle>$needle</div> <br>";
+              $newitemidcounter++;
+              $assigned = true;
+            }
             else
-              $needle = $configValueValue['id'] . "=" . $newitemidcounter;
-            
-            $config[$configKey]['newContents'] = str_replace($target, $needle, $config[$configKey]['newContents']);
-            echo "Changed <div class=target>$target</div> to <div class=needle>$needle</div> <br>";
-            $newitemidcounter++;
+            {
+              echo "[Debug]Ignored id conflicting with vanilla.<br>";
+              $newitemidcounter++;
+            }
           }
-          else
-            echo "Ignored vanilla reserved id.<br>";
         }
         else
           echo "Ignored locked option.<br>";
@@ -392,6 +419,8 @@ if ($step == 'assigning')
         #echo "Ignored non-item.<br>";
     }
   }
+  
+  myVarDump($config);
 
   $_SESSION['config'] = $config;
   
@@ -418,6 +447,7 @@ if ($step == 'download')
   foreach ($config as $key => $value)
   {
     $filepath = "extracted/$filekey/" . $value['path'];
+    echo "[Debug]Working in\"$filepath\" on " . $value['path'] . "<br>";
     
     if (writeToFile($value['newContents'], $filepath))
       if ($debug >= 1) echo "Success on " . $value['path'] . "!<br>";

@@ -11,6 +11,11 @@ $str_error[5] = "Failed to move file.";
 
 { ### GET FORM DATA
 @$step = $_POST['step'];
+
+if (isset($_POST['debug']))
+  @$debug = $_POST['debug'];
+else
+  @$debug = 0;
 }
 
 { ### CONFIG IGNORE LIST
@@ -238,6 +243,7 @@ if ($step == 'overview')
       }
     }*/
     
+    $debug = $_SESSION['debug'];
     $_SESSION['config'] = $config;
     $_SESSION['filekey'] = $filekey;
     
@@ -290,6 +296,7 @@ if ($step == 'assigning')
   session_start();
   #session_id(1);
 
+  $debug = $_SESSION['debug'];
   $config = $_SESSION['config'];
   
   if ($_POST['startblock'] > 0)
@@ -437,6 +444,7 @@ $step = $_POST['step'];
 if ($step == 'download')
 {
   session_start();
+  $debug = $_SESSION['debug'];
   $config = $_SESSION['config'];
   $filekey = $_SESSION['filekey'];
   

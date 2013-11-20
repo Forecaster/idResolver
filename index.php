@@ -294,7 +294,11 @@ if ($step == 'overview')
       }
     }*/
     
+<<<<<<< HEAD
     $_SESSION['debug'] = $debug;
+=======
+    $debug = $_SESSION['debug'];
+>>>>>>> 2e26967350db6045c7125fcdbe1c69cec0937d48
     $_SESSION['config'] = $config;
     $_SESSION['filekey'] = $filekey;
     

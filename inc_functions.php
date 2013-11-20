@@ -64,6 +64,10 @@ function myReadFile($filepath)
 
 function myReadDir($dirpath, $searchfor, $ignore, $subdir, $debug) #max debug 4
 {
+  global $indent;
+  if (isset($subdir)) $indent = $indent + 1;
+  if ($debug > 0) echo "<div class=functionOutput>";
+  if ($debug > 2 && isset($subdir)) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]Reading sub-dir: " . basename($subdir) . "</div>";
   $dirhandle = opendir($dirpath);
   $entry_counter = 0;
   
@@ -71,46 +75,47 @@ function myReadDir($dirpath, $searchfor, $ignore, $subdir, $debug) #max debug 4
   {
     if ($entry != "." && $entry != "..")
     {
-      if ($debug >= 1) echo "[Debug][myReadDir]Now testing \"$entry\":<br>";
+      if ($debug >= 1) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]Now testing \"$entry\":</div>";
       
       $entrypath = $dirpath . "/" . $entry;
-      if ($debug >= 2) echo "[Debug][myReadDir]Testing if $entrypath is a directory<br>";
       if (is_dir($entrypath))
       {
-        if ($debug >= 2) echo "[Debug][myReadDir]===Reading sub-dir: $entry<br>";
-        $newEntries = myReadDir($entrypath, $searchfor, $ignore, $entry, $debug);
+        if ($debug >= 2) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]$entry is a directory!</div>";
+        $newEntries = myReadDir($entrypath, $searchfor, $ignore, $subdir."/".$entry, $debug);
         if (count($newEntries) != 0)
           if (isset($entries))
             $entries = array_merge($entries, $newEntries);
           else
             $entries = $newEntries;
-        if ($debug >= 2) echo "[Debug][myReadDir]===Finished reading sub-dir: $entry<br>";
       }
       else
       {
+        if ($debug >= 2) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]$entry is NOT a directory!</div>";
+        if ($debug >= 2) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]Checking if $entry is a valid file and not in ignore list!</div>";
         foreach ($searchfor as $value)
         {
-          if ($debug >= 2) echo "[Debug][myReadDir]Checking if $entry is a $value file and not in ignore list!<br>";
           if (stristr($entry, $value) && !in_array($entry, $ignore))
           {
-            if ($debug >= 3) echo "[Debug][myReadDir]$entry is a valid file!<br>";
+            if ($debug >= 3) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]$entry is a valid file!</div>";
             if (isset($subdir))
             {
-              if ($debug >= 4) echo "[Debug][myReadDir]$entry has subdir, inserting into entries array as $subdir/$entry!<br>";
+              if ($debug >= 4) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]$entry is in a subdir, inserting into entries array as $subdir/$entry!</div>";
               $entries[$entry_counter]['path'] = $subdir . "/" . $entry;
               $entries[$entry_counter]['name'] = $entry;
             }
             else
             {
-              if ($debug >= 4) echo "[Debug][myReadDir]$entry has no subdir, inserting into entries array as $entry!<br>";
+              if ($debug >= 4) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]$entry has no subdir, inserting into entries array as $entry!</div>";
               $entries[$entry_counter]['path'] = $entry;
               $entries[$entry_counter]['name'] = $entry;
             }
           }
           elseif (!stristr($entry, $value) && $debug >= 2)
-            echo "[Debug][myReadDir]$entry is not a valid file!<br>";
+          {
+            #echo "[Debug][myReadDir]$entry is not a valid file!<br>";
+          }
           elseif ($debug >= 2)
-            echo "[Debug][myReadDir]$entry was ignored!<br>";
+            echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]$entry was ignored!</div>";
         }
       }
     }
@@ -118,67 +123,142 @@ function myReadDir($dirpath, $searchfor, $ignore, $subdir, $debug) #max debug 4
     $entry_counter++;
   }
   
+  if ($debug >= 2 && isset($subdir)) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]Finished reading sub-dir: " . basename($subdir) . "</div>";
+  if ($debug > 0) echo "</div>";
+  if (isset($subdir)) $indent = $indent - 1;
   return $entries;
 }
 
-function extractValues($contents, $blockblocks, $itemblocks, $shift, $debug) #max debug 4
+function extractValues($filename, $contents, $compat, $shift, $debug) #max debug 4
 {
-  if (!is_array($blockblocks) || !is_array($itemblocks))
-  {
-    echo "[Error]No search arrays recieved! Will not find anything!<br>";
-    break;
-  }
-
-  $line = preg_split('/\n|\r/', $contents, -1, PREG_SPLIT_NO_EMPTY);
-  
+  global $defaultBlockblocks, $defaultItemblocks;
   $counter = 0;
   $total_counter = 0;
-  foreach ($line as $key => $lineValue)
+
+  if ($debug > 0) echo "<div class=functionOutput>";
+  if ($debug > 1) echo "<div>[Debug][extractValues]Working file: $filename</div>";
+  
+  if (array_key_exists($filename, $compat))
+    echo "<div>[Debug][extractValues]Found compat file for $filename.</div>";
+  
+  if ($compat[$filename]['ids'] != 'false')
   {
-    if (stristr($lineValue, '{'))
+    $counter = 0;
+    $total_counter = 0;
+    
+    if (isset($compat[$filename]['blockblocks']))
     {
-      if (str_in_array($lineValue, $blockblocks))
+       $blockblocks = $compat[$filename]['blockblocks'];
+    }
+    else
+    {
+      if ($debug > 0) echo "<div>[Debug][extractValues]No block block compat. Set default.</div>";
+      $blockblocks = $defaultBlockblocks;
+    }
+    
+    if (isset($compat[$filename]['itemblocks']))
+    {
+      $itemblocks = $compat[$filename]['itemblocks'];
+    }
+    else
+    {
+      if ($debug > 0) echo "<div>[Debug][extractValues]No item block compat. Set default.</div>";
+      $itemblocks = $defaultItemblocks;
+    }
+    
+    if (isset($compat[$filename]['blocks']))
+      $blocks = $compat[$filename]['blocks'];
+      
+    if (isset($compat[$filename]['items']))
+      $items = $compat[$filename]['items'];
+   $line = preg_split('/\n|\r/', $contents, -1, PREG_SPLIT_NO_EMPTY);
+    
+    if ($debug > 0) echo "<div>[Debug][extractValues]Trying individual</div>";
+    foreach ($line as $lineKey => $lineValue)
+    {
+      unset($id);
+      list($key, $id) = explode('=', $lineValue);
+      
+      if (isset($id))
       {
-        $type = "block";
-        if ($debug >= 3)
-          echo "[Debug]!!! Found valid config block! ($lineValue)<br>";
-      }
-      elseif (str_in_array($lineValue, $itemblocks))
-      {
-        $type = "item";
-        if ($debug >= 3)
-          echo "[Debug]!!! Found valid config block! ($lineValue)<br>";
-      }
-      else
-      {
-        $type = "invalid";
-        if ($debug >= 4)
-          echo "[Debug]Found invalid config block! ($lineValue)<br>";
+        $key = str_replace('I:', '', $key);
+        #if ($debug > 0) echo "<div>[Debug][extractValues]Scanning key: $key</div>";
+        
+        if (str_in_array($key, $blocks))
+        {
+          if ($debug >= 4) echo "[Debug][extractValues]Block: " . $lineKey . " => " . $lineValue . "<br>";
+          
+          $configValues[$counter]['type'] = "block";
+          $configValues[$counter]['id'] = $key;
+          $configValues[$counter]['value'] = $id;
+          
+          $counter++;
+        }
+        elseif (str_in_array($key, $items))
+        {
+          if ($debug >= 4) echo "[Debug][extractValues]Item: " . $lineKey . " => " . $lineValue . "<br>";
+          
+           $configValues[$counter]['type'] = "item";
+          $configValues[$counter]['id'] = $key;
+          $configValues[$counter]['value'] = $id + $shift;
+          
+          $counter++;
+        }
       }
     }
     
-    if ($type != "invalid")
+   if ($debug > 0) echo "<div>[Debug][extractValues]Trying blocks</div>";
+    foreach ($line as $lineKey => $lineValue)
     {
-      if (stristr($lineValue, 'I:'))
+      if (stristr($lineValue, '{'))
       {
-        if ($debug >= 4)
-          echo "[Debug]" . $key . " => " . $lineValue . "<br>";
-        $current = explode('=', $lineValue);
-        $configValues[$counter]['type'] = $type;
-        $configValues[$counter]['id'] = $current[0];
-        
-        if ($type == "item")
-          $configValues[$counter]['value'] = $current[1] + $shift;
+        if (str_in_array($lineValue, $blockblocks))
+        {
+          $type = "block";
+          if ($debug >= 3)
+            echo "[Debug][extractValues]!!! Found valid config block! ($lineValue)<br>";
+        }
+        elseif (str_in_array($lineValue, $itemblocks))
+        {
+          $type = "item";
+          if ($debug >= 3)
+            echo "[Debug][extractValues]!!! Found valid config block! ($lineValue)<br>";
+        }
         else
-          $configValues[$counter]['value'] = $current[1];
-        
-        $counter++;
+        {
+          $type = "invalid";
+          if ($debug >= 4)
+            echo "[Debug][extractValues]Ignored invalid config block! ($lineValue)<br>";
+        }
       }
+      
+      if ($type != "invalid")
+      {        
+        unset($id);
+        list($key, $id) = explode('=', $lineValue);
+        
+        if (isset($id))
+        {
+          $configValues[$counter]['type'] = $type;
+          $configValues[$counter]['id'] = $key;
+          
+          if ($type == "item")
+            $configValues[$counter]['value'] = $id + $shift;
+          else
+            $configValues[$counter]['value'] = $id;
+          
+          $counter++;
+        }
+      }
+      $total_counter++;
     }
-    $total_counter++;
   }
+  else
+    $counter = -1;
   
-  return $configValues;
+  if ($debug > 0) echo "<div>[Debug][extractValues]Found $counter id's!</div>";
+  if ($debug > 0) echo "</div>";
+  return array($configValues, $counter);
 }
 
 function recieveFile($filehandle) //name of file input
@@ -277,7 +357,7 @@ function addFiles($filekey, $addpaths, $targetpath, $debug) #max debug 1
 {
   $zip = new ZipArchive;
   
-  if ($debug >= 1) echo "[Debug]Attempting to open $targetpath<br>";
+  if ($debug >= 1) echo "[Debug][addFiles]Attempting to open $targetpath<br>";
   if ($zip->open($targetpath, ZIPARCHIVE::CREATE) !== TRUE) {
     return false;
   }
@@ -286,7 +366,7 @@ function addFiles($filekey, $addpaths, $targetpath, $debug) #max debug 1
   {
     $sourcepath = "extracted/$filekey/" . $value['path'];
     $newname = $value['path'];
-    if ($debug >= 1) echo "[Debug]Attempting to add $sourcepath to $targetpath<br>";
+    if ($debug >= 1) echo "[Debug][addFiles]Attempting to add $sourcepath to $targetpath<br>";
     $zip->addFile($sourcepath, $newname);
   }
   $zip->close();
@@ -340,8 +420,76 @@ function str_in_array($str, $array)
     if (stristr($str, $arrayValue))
       return true;
   }
+}
+
+function readCompat($content, $debug)
+{
+  if ($debug > 0) echo "<div>";
+  $shifted = 'no';
+  $ids = 'yes';
+  $currentType = "none";
   
-  return false;
+  $line = preg_split('/\n|\r/', $content, -1, PREG_SPLIT_NO_EMPTY);
+  
+  foreach ($line as $lineKey => $lineValue)
+  {
+    if ($debug > 0) echo "[Debug][readCompat]Current line: $lineValue<br>";
+    if (stristr('-shifted=yes', $lineValue))
+    {
+      $shifted = 'yes';
+      if ($debug > 0) echo "[Debug][readCompat]Detected shift<br>";
+    }
+    
+    if (stristr('-noids', $lineValue))
+    {
+      $ids = 'false';
+      if ($debug > 0) echo "[Debug][readCompat]Detected no ids<br>";
+    }
+    
+    if (stristr('-blockblocks', $lineValue))
+    {
+      $currentType = "blockblocks";
+      if ($debug > 0) echo "[Debug][readCompat]Type set to blockblock<br>";
+    }
+    elseif (stristr('-itemblocks', $lineValue))
+    {
+      $currentType = "itemblocks";
+      if ($debug > 0) echo "[Debug][readCompat]Type set to itemblock<br>";
+    }
+    elseif (stristr('-blocks', $lineValue))
+    {
+      $currentType = "blocks";
+      if ($debug > 0) echo "[Debug][readCompat]Type set to blocks<br>";
+    }
+    elseif (stristr('-items', $lineValue))
+    {
+      $currentType = "items";
+      if ($debug > 0) echo "[Debug][readCompat]Type set to items<br>";
+    }
+    elseif ($currentType == "blockblocks")
+    {
+      $blockblocks[] = $lineValue;
+      if ($debug > 1) echo "[Debug][readCompat]Added blockblock<br>";
+    }
+    elseif ($currentType == "itemblocks")
+    {
+      $itemblocks[] = $lineValue;
+      if ($debug > 1) echo "[Debug][readCompat]Added itemblock<br>";
+    }
+    elseif ($currentType == "blocks")
+    {
+      $blocks[] = $lineValue;
+      if ($debug > 1) echo "[Debug][readCompat]Added block<br>";
+    }
+    elseif ($currentType == "items")
+    {
+      $items[] = $lineValue;
+      if ($debug > 1) echo "[Debug][readCompat]Added item<br>";
+    }
+  }
+  
+  if ($debug > 0) echo "</div>";
+  return array($shifted, $ids, $blockblocks, $itemblocks, $blocks, $items);
 }
 
 

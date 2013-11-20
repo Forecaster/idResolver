@@ -11,9 +11,15 @@ $str_error[5] = "Failed to move file.";
 
 { ### GET FORM DATA
 @$step = $_POST['step'];
+
+if (isset($_POST['debug']))
+  @$debug = $_POST['debug'];
+else
+  @$debug = 0;
 }
 
-{ ### CONFIG IGNORE LIST
+{ ### CONFIG IGNORE LIST  $ignore[] = "file";
+
 $ignore[] = "forge.cfg";
 $ignore[] = "forgeChunkLoading.cfg";
 $ignore[] = "multipart.cfg";
@@ -28,15 +34,56 @@ $ignore[] = "denLib.cfg";
 $ignore[] = "NEI-Mystcraft-Plugin.cfg";
 $ignore[] = "Waila.cfg";
 $ignore[] = "powersuits-keybinds.cfg";
+$ignore[] = "WebDisplay.cfg";
+$ignore[] = "BetterGrassAndLeavesMod.cfg";
+$ignore[] = "colossali_Super_Heroes.cfg";
+$ignore[] = "mod_StatusEffectHUD.cfg";
+$ignore[] = "mod_ArmorStatusHUD.bsprop.cfg";
+$ignore[] = "NEIAddons.cfg";
 }
 
 { ### PRE SHIFTED CONFIGS
 $ignoreShift[] = "factorization.cfg";
 }
 
-$blockBlocks = array('block {');
+$search[] = ".cfg";
+$search[] = ".conf";
+$search[] = ".txt";
 
-$itemBlocks = array('item {', 'equipables {', 'logic {', '"patterns and misc" {', '"tool parts" {', 'tools {');
+#$blockBlocks = array('block {', 'blocks {', 'blocks_ids {', '"lordmau5/powerboxes/block" {');
+
+#$itemBlocks = array('item {', 'items {', 'equipables {', 'logic {', '"patterns and misc" {', '"tool parts" {', 'tools {', 'items_ids {', 'signedittool {', 'item.ids {', '"lordmau5/powerboxes/item" {');
+
+{ ### READ COMPAT FILES
+$compatEntries = myReadDir('compat/', $search, null, null, 0);
+
+foreach ($compatEntries as $compatEntriesKey => $compatEntriesValue)
+{
+  $compat[$compatEntriesValue['name']]['path'] = $compatEntriesValue['path'];
+}
+
+foreach ($compat as $compatKey => $compatValue)
+{
+  $path = "compat/" . $compatValue['path'];
+  $compat[$compatKey]['content'] = myReadFile($path);
+}
+
+foreach ($compat as $compatKey => $compatValue)
+{
+  list($shifted, $ids, $blockblocks,$itemblocks, $blocks, $items) = readCompat($compatValue['content'], 0);
+  $compat[$compatKey]['ids'] = $ids;
+  $compat[$compatKey]['shifted'] = $shifted;
+  $compat[$compatKey]['blockblocks'] = $blockblocks;
+  $compat[$compatKey]['itemblocks'] = $itemblocks;
+  $compat[$compatKey]['blocks'] = $blocks;
+  $compat[$compatKey]['items'] = $items;
+}
+}
+
+#myVarDump($compat);
+
+$defaultBlockblocks = array('block {', 'blocks {');
+$defaultItemblocks = array('item {', 'items {');
 
 { ### RESERVED ID'S
 $reservedVanillaBlocks = array(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,164,165,166,167,168,169,170,171,172,173);
@@ -49,6 +96,8 @@ $startitem = 4096;
 
 $maxBlock = 4095;
 $maxItem = 31999;
+
+$indent = 0;
 ?>
 <script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js" /></script>
 
@@ -115,6 +164,7 @@ if ($step == 'upload')
     <input type=hidden name=step value='overview' />
     <input type=file name=file style='width: 100%; height: 50px; background-color: lightgray;' /><br>
     <input class=button type=submit value='Upload' />
+    <input type=text name=debug placeholder='Debug Level' /> Debug level. (0 - 4) Determines amount of debug output where 0 is none. There will still be normal output though.<br>
   </form>
   <br>
   Or<br>
@@ -183,20 +233,18 @@ if ($step == 'overview')
     #list($times_read, $configs, $configValues, $names) = readZip($path . $filename, $ignore, 2);
     
     if (!extractZip($archivepath, $targetpath))
-      echo "<br><br>[Error]Something went wrong when trying to extract your archive!<br><br>";
+      echo "<div class=error>[Error]Something went wrong when trying to extract your archive!</div>";
     
     $dirpath = "extracted/$filekey";
     
-    $search[] = ".cfg";
-    $search[] = ".conf";
-    $search[] = ".txt";
+    $entries = myReadDir($dirpath, $search, $ignore, null, $debug);
     
-    $entries = myReadDir($dirpath, $search, $ignore, null, 0);
+    asort($entries);
     
-    foreach ($entries as $key => $value)
+    foreach ($entries as $entriesKey => $entriesValue)
     {
-      $config[$key]['path'] = $value['path'];
-      $config[$key]['name'] = $value['name'];
+      $config[$entriesKey]['path'] = $entriesValue['path'];
+      $config[$entriesKey]['name'] = $entriesValue['name'];
     }
     
     foreach ($config as $configKey => $configValue)
@@ -205,29 +253,37 @@ if ($step == 'overview')
       
       $contents = myReadFile($filepath);
       if (!$contents)
-        echo "[Error]No id's were found in " . $configValue['path'] . "! Please report this to Forecaster!<br>";
+      {
+        echo "<div class=note>[Note]File " . $configValue['path'] . " is empty!</div>";
+        unset($config[$configKey]);
+      }
       else
         $config[$configKey]['contents'] = $contents;
         
       $config[$configKey]['newContents'] = $config[$configKey]['contents'];
       
-      echo "[Debug]Reading file " . $configValue['name'] . ":<br>";
+      if ($debug > 0) echo "[Debug][index]Reading file " . $configValue['name'] . ":<br>";
       
-      if (!in_array($configValue['name'], $ignoreShift))
+      if (!(strtolower($compat[$configValue['name']]['shifted']) == 'yes'))
       {
-        echo "[Debug]Shifted " . $configValue['name'] . "<br>";
+        if ($debug > 0) echo "[Debug][index]Shifted " . $configValue['name'] . "<br>";
         $shift = 256;
         $config[$configKey]['shifted'] = 256;
       }
       else
       {
-        echo "[Debug]Ignored shift on " . $configValue['name'] . "<br>";
+        if ($debug > 0) echo "[Debug][index]Ignored shift on " . $configValue['name'] . "<br>";
         $shift = 0;
         $config[$configKey]['shifted'] = 0;
       }
       
-      $config[$configKey]['values'] = extractValues($config[$configKey]['contents'], $blockBlocks, $itemBlocks, $shift, 0);
+      list($config[$configKey]['values'], $config[$configKey]['idCounter']) = extractValues($config[$configKey]['name'], $config[$configKey]['contents'], $compat, $shift, $debug);
+      
+      if ($config[$configKey]['idCounter'] == 0)
+        echo "<div class=warning>[Warning]No id's could be found in " . $configValue['path'] . ". Either there are none, or it contains config blocks with non-standard names! Please report to Forecaster!</div>";
     }
+    
+    #myVarDump($config);
     
     /*foreach ($config as $key => $value)
     {
@@ -238,6 +294,7 @@ if ($step == 'overview')
       }
     }*/
     
+    $_SESSION['debug'] = $debug;
     $_SESSION['config'] = $config;
     $_SESSION['filekey'] = $filekey;
     
@@ -290,6 +347,7 @@ if ($step == 'assigning')
   session_start();
   #session_id(1);
 
+  $debug = $_SESSION['debug'];
   $config = $_SESSION['config'];
   
   if ($_POST['startblock'] > 0)
@@ -340,31 +398,31 @@ if ($step == 'assigning')
     {
       if ($configValueValue['type'] == "block")
       {
-        echo "[Debug]Checking for \"" . ($configValueValue['id'] . "=" . $configValueValue['value']) . "\" in locked array!<br>";
+        if ($debug > 0) echo "[Debug][blockAssign]Checking for \"" . ($configValueValue['id'] . "=" . $configValueValue['value']) . "\" in locked array!<br>";
         if (!str_in_array(($configValueValue['id'] . "=" . $configValueValue['value']), $locked))
         {
           $assigned = false;
           while ($assigned === false)
           {
-            echo "[Debug]Checking $newblockidcounter if conflicting with vanilla!<br>";
+            if ($debug > 0) echo "[Debug][blockAssign]Checking $newblockidcounter if conflicting with vanilla!<br>";
             if (!in_array($newblockidcounter, $reservedVanillaBlocks))
             {
               $target = $configValueValue['id'] . "=" . $configValueValue['value'];
               $needle = $configValueValue['id'] . "=" . $newblockidcounter;
               $config[$configKey]['newContents'] = str_replace($target, $needle, $config[$configKey]['newContents']);
-              echo "[Debug]Changed <div class=target>$target</div> to <div class=needle>$needle</div> <br>";
+              echo "Changed <div class=target>$target</div> to <div class=needle>$needle</div> <br>";
               $newblockidcounter++;
               $assigned = true;
             }
             else
             {
-              echo "[Debug]Ignored id conflicting with vanilla.<br>";
+              if ($debug > 0) echo "[Debug][blockAssign]Ignored id conflicting with vanilla.<br>";
               $newblockidcounter++;
             }
           }
         }
         else
-          echo "[Debug]Ignored locked option.<br>";
+          if ($debug > 0) echo "[Debug][blockAssign]Ignored locked option.<br>";
       }
       #else
         #echo "Ignored non-block.<br>";
@@ -379,13 +437,13 @@ if ($step == 'assigning')
     {
       if ($configValueValue['type'] == "item")
       {
-        echo "[Debug]Checking for \"" . ($configValueValue['id'] . "=" . $configValueValue['value']) . "\" in locked array!<br>";
+        if ($debug > 0) echo "[Debug][itemAssign]Checking for \"" . ($configValueValue['id'] . "=" . $configValueValue['value']) . "\" in locked array!<br>";
         if (!in_array($configValueValue['id'] . "=" . $configValueValue['value'], $locked))
         {
           $assigned = false;
           while ($assigned === false)
           {
-            echo "[Debug]Checking $newitemidcounter if conflicting with vanilla!<br>";
+            if ($debug > 0) echo "[Debug][itemAssign]Checking $newitemidcounter if conflicting with vanilla!<br>";
             if (!in_array($newitemidcounter, $reservedVanillaItems))
             {
               if (in_array($configValue['name'], $ignoreShift))
@@ -393,7 +451,7 @@ if ($step == 'assigning')
               else
                 $target = $configValueValue['id'] . "=" . $configValueValue['value'];
               
-              echo "[Debug]Shift value: " . $configValue['shifted'] . "<br>";
+              if ($debug > 0) echo "[Debug][itemAssign]Shift value: " . $configValue['shifted'] . "<br>";
               
               if (in_array($configValue['name'], $ignoreShift))
                 $needle = $configValueValue['id'] . "=" . ($newitemidcounter - $configValue['shifted']);
@@ -401,13 +459,13 @@ if ($step == 'assigning')
                 $needle = $configValueValue['id'] . "=" . $newitemidcounter;
               
               $config[$configKey]['newContents'] = str_replace($target, $needle, $config[$configKey]['newContents']);
-              echo "[Debug]Changed <div class=target>$target</div> to <div class=needle>$needle</div> <br>";
+              echo "[Debug][itemAssign]Changed <div class=target>$target</div> to <div class=needle>$needle</div> <br>";
               $newitemidcounter++;
               $assigned = true;
             }
             else
             {
-              echo "[Debug]Ignored id conflicting with vanilla.<br>";
+              if ($debug > 0) echo "[Debug][itemAssign]Ignored id conflicting with vanilla.<br>";
               $newitemidcounter++;
             }
           }
@@ -437,6 +495,7 @@ $step = $_POST['step'];
 if ($step == 'download')
 {
   session_start();
+  $debug = $_SESSION['debug'];
   $config = $_SESSION['config'];
   $filekey = $_SESSION['filekey'];
   
@@ -447,7 +506,7 @@ if ($step == 'download')
   foreach ($config as $key => $value)
   {
     $filepath = "extracted/$filekey/" . $value['path'];
-    echo "[Debug]Working in\"$filepath\" on " . $value['path'] . "<br>";
+    if ($debug > 0) echo "[Debug]Working in\"$filepath\" on " . $value['path'] . "<br>";
     
     if (writeToFile($value['newContents'], $filepath))
       if ($debug >= 1) echo "Success on " . $value['path'] . "!<br>";
@@ -474,7 +533,7 @@ if ($step == 'download')
   }*/
   
   $targetpath = "repacked/$filekey.zip";
-  $result = addFiles($filekey, $config, $targetpath, 0);
+  $result = addFiles($filekey, $config, $targetpath, $debug);
   
   rrmdir("extracted/$filekey");
   unlink("archives/$filekey" . ".zip");
@@ -484,7 +543,7 @@ if ($step == 'download')
   $searchfor[] = ".zip";
   $ignore[] = "index.php";
   
-  $archives = myReadDir($dirpath, $searchfor, $ignore, null, 0);
+  $archives = myReadDir($dirpath, $searchfor, $ignore, null, $debug);
   
   foreach ($archives as $value)
   {
@@ -492,7 +551,10 @@ if ($step == 'download')
     $datetime = filemtime($name);
     if ($datetime !== false)
       if (($datetime + 86400) < time())
+      {
         unlink($name);
+        if ($debug > 0) echo "[Debug]Deleted $name.";
+      }
   }
   
   if (!$result)

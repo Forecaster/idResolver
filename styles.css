@@ -31,6 +31,33 @@ div.needle
   display: inline-block;
 }
 
+div.functionOutput:nth-child(2n+1)
+{
+  background-color: rgba(0,0,0,0.15);
+}
+
+div.functionOutput:nth-child(2n)
+{
+  background-color: rgba(0,0,0,0.25);
+}
+
+div.error
+{
+  color: white;
+  background-color: red;
+}
+
+div.warning
+{
+  color: black;
+  background-color: rgba(255,155,0,0.75);
+}
+
+div.note
+{
+  color: gray;
+}
+
 TD.step
 {
   color: red;

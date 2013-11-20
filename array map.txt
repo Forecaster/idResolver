@@ -12,8 +12,23 @@ $config
     ['contents'] - String
     ['newContents'] - String
     ['shifted'] -> Int
+    ['idCounter'] -> Int
     ['values'] -> Array
       [key] - Int
         ['type'] - String
         ['id'] - String
         ['value'] - String
+
+$compat
+  [key] -> String
+    ['path'] -> String
+    ['content'] -> String
+    ['shifted'] -> String
+    ['blockblocks'] -> Array
+      [key] -> Int
+    ['itemblocks'] -> Array
+      [key] -> Int
+    ['blocks'] -> Array
+      [key] -> Int
+    ['items'] -> Array
+      [key] -> Int

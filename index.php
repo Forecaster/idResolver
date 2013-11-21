@@ -59,7 +59,7 @@ $compatEntries = myReadDir('compat/', $search, null, null, 0);
 
 foreach ($compatEntries as $compatEntriesKey => $compatEntriesValue)
 {
-  $compat[$compatEntriesValue['name']]['path'] = $compatEntriesValue['path'];
+  $compat[$compatEntriesValue['path']]['path'] = $compatEntriesValue['path'];
 }
 
 foreach ($compat as $compatKey => $compatValue)
@@ -80,7 +80,7 @@ foreach ($compat as $compatKey => $compatValue)
 }
 }
 
-#myVarDump($compat);
+myVarDump($compat);
 
 $defaultBlockblocks = array('block {', 'blocks {');
 $defaultItemblocks = array('item {', 'items {');
@@ -277,7 +277,7 @@ if ($step == 'overview')
         $config[$configKey]['shifted'] = 0;
       }
       
-      list($config[$configKey]['values'], $config[$configKey]['idCounter']) = extractValues($config[$configKey]['name'], $config[$configKey]['contents'], $compat, $shift, $debug);
+      list($config[$configKey]['values'], $config[$configKey]['idCounter']) = extractValues($config[$configKey]['path'], $config[$configKey]['contents'], $compat, $shift, $debug);
       
       if ($config[$configKey]['idCounter'] == 0)
         echo "<div class=warning>[Warning]No id's could be found in " . $configValue['path'] . ". Either there are none, or it contains config blocks with non-standard names! Please report to Forecaster!</div>";

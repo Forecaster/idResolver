@@ -138,8 +138,15 @@ function extractValues($filename, $contents, $compat, $shift, $debug) #max debug
   if ($debug > 0) echo "<div class=functionOutput>";
   if ($debug > 1) echo "<div>[Debug][extractValues]Working file: $filename</div>";
   
-  if (array_key_exists($filename, $compat))
-    echo "<div>[Debug][extractValues]Found compat file for $filename.</div>";
+  #echo "<div>[Debug][extractValues]Checking for compat $filename.</div>";
+  #if (array_key_exists($filename, $compat))
+  #  echo "<div>[Debug][extractValues]Found compat file for $filename.</div>";
+  
+  foreach ($compat as $compatKey => $compatValue)
+  {
+    if (($filename = stristr($filename, $compatKey)) !== false)
+      echo "<div>[Debug][extractValues]Found compat file for $filename!</div>";
+  }
   
   if ($compat[$filename]['ids'] != 'false')
   {
@@ -179,7 +186,7 @@ function extractValues($filename, $contents, $compat, $shift, $debug) #max debug
       unset($id);
       list($key, $id) = explode('=', $lineValue);
       
-      if (isset($id))
+      if (isset($id) && is_numeric($id))
       {
         $key = str_replace('I:', '', $key);
         #if ($debug > 0) echo "<div>[Debug][extractValues]Scanning key: $key</div>";
@@ -237,7 +244,7 @@ function extractValues($filename, $contents, $compat, $shift, $debug) #max debug
         unset($id);
         list($key, $id) = explode('=', $lineValue);
         
-        if (isset($id))
+        if (isset($id) && is_numeric($id))
         {
           $configValues[$counter]['type'] = $type;
           $configValues[$counter]['id'] = $key;

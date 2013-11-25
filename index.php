@@ -80,7 +80,7 @@ foreach ($compat as $compatKey => $compatValue)
 }
 }
 
-myVarDump($compat);
+#myVarDump($compat);
 
 $defaultBlockblocks = array('block {', 'blocks {');
 $defaultItemblocks = array('item {', 'items {');

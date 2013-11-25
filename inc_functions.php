@@ -136,26 +136,30 @@ function extractValues($filename, $contents, $compat, $shift, $debug) #max debug
   $total_counter = 0;
 
   if ($debug > 0) echo "<div class=functionOutput>";
-  if ($debug > 1) echo "<div>[Debug][extractValues]Working file: $filename</div>";
-  
-  #echo "<div>[Debug][extractValues]Checking for compat $filename.</div>";
-  #if (array_key_exists($filename, $compat))
-  #  echo "<div>[Debug][extractValues]Found compat file for $filename.</div>";
+  if ($debug > 0) echo "<div>[Debug][extractValues]Working file: $filename</div>";
   
   foreach ($compat as $compatKey => $compatValue)
   {
-    if (($filename = stristr($filename, $compatKey)) !== false)
-      echo "<div>[Debug][extractValues]Found compat file for $filename!</div>";
+    if (($compatName = stristr($filename, $compatKey)) !== false)
+    {
+      $foundCompat = 1;
+      break;
+    }
   }
   
-  if ($compat[$filename]['ids'] != 'false')
+  if ($foundCompat == 1)
+    echo "<div>[Debug][extractValues]Found compat file for $filename!</div>";
+  else
+    echo "<div>[Debug][extractValues]Found no compat file for $filename!</div>";
+  
+  if ($compat[$compatName]['ids'] != 'false')
   {
     $counter = 0;
     $total_counter = 0;
     
-    if (isset($compat[$filename]['blockblocks']))
+    if (isset($compat[$compatName]['blockblocks']))
     {
-       $blockblocks = $compat[$filename]['blockblocks'];
+       $blockblocks = $compat[$compatName]['blockblocks'];
     }
     else
     {
@@ -163,9 +167,9 @@ function extractValues($filename, $contents, $compat, $shift, $debug) #max debug
       $blockblocks = $defaultBlockblocks;
     }
     
-    if (isset($compat[$filename]['itemblocks']))
+    if (isset($compat[$compatName]['itemblocks']))
     {
-      $itemblocks = $compat[$filename]['itemblocks'];
+      $itemblocks = $compat[$compatName]['itemblocks'];
     }
     else
     {
@@ -173,11 +177,11 @@ function extractValues($filename, $contents, $compat, $shift, $debug) #max debug
       $itemblocks = $defaultItemblocks;
     }
     
-    if (isset($compat[$filename]['blocks']))
-      $blocks = $compat[$filename]['blocks'];
+    if (isset($compat[$compatName]['blocks']))
+      $blocks = $compat[$compatName]['blocks'];
       
-    if (isset($compat[$filename]['items']))
-      $items = $compat[$filename]['items'];
+    if (isset($compat[$compatName]['items']))
+      $items = $compat[$compatName]['items'];
    $line = preg_split('/\n|\r/', $contents, -1, PREG_SPLIT_NO_EMPTY);
     
     if ($debug > 0) echo "<div>[Debug][extractValues]Trying individual</div>";

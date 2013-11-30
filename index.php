@@ -70,13 +70,16 @@ foreach ($compat as $compatKey => $compatValue)
 
 foreach ($compat as $compatKey => $compatValue)
 {
-  list($shifted, $ids, $blockblocks,$itemblocks, $blocks, $items) = readCompat($compatValue['content'], 0);
+  #echo "[Debug][compat]Reading " . $compatValue['path'] . "<br>";
+  list($shifted, $ids, $blockblocks,$itemblocks, $blocks, $items, $blockranges, $itemranges) = readCompat($compatValue['content'], 0);
   $compat[$compatKey]['ids'] = $ids;
   $compat[$compatKey]['shifted'] = $shifted;
   $compat[$compatKey]['blockblocks'] = $blockblocks;
   $compat[$compatKey]['itemblocks'] = $itemblocks;
   $compat[$compatKey]['blocks'] = $blocks;
   $compat[$compatKey]['items'] = $items;
+  $compat[$compatKey]['blockranges'] = $blockranges;
+  $compat[$compatKey]['itemranges'] = $itemranges;
 }
 }
 

@@ -477,6 +477,16 @@ function readCompat($content, $debug)
       $currentType = "items";
       if ($debug > 0) echo "[Debug][readCompat]Type set to items<br>";
     }
+    elseif (stristr('-blockranges', $lineValue))
+    {
+      $currentType = "blockranges";
+      if ($debug > 0) echo "[Debug][readCompat]Type set to blockranges<br>";
+    }
+    elseif (stristr('-itemranges', $lineValue))
+    {
+      $currentType = "itemranges";
+      if ($debug > 0) echo "[Debug][readCompat]Type set to itemranges<br>";
+    }
     elseif ($currentType == "blockblocks")
     {
       $blockblocks[] = $lineValue;
@@ -497,10 +507,22 @@ function readCompat($content, $debug)
       $items[] = $lineValue;
       if ($debug > 1) echo "[Debug][readCompat]Added item<br>";
     }
+    elseif ($currentType == "blockranges")
+    {
+      $explodeLineValue = explode(':', $lineValue);
+      $blockranges[] = array('key' => $explodeLineValue[0], 'range' => $explodeLineValue[1]);
+      if ($debug > 1) echo "[Debug][readCompat]Added block range<br>";
+    }
+    elseif ($currentType == "itemranges")
+    {
+      $explodeLineValue = explode(':', $lineValue);
+      $itemranges[] = array('key' => $explodeLineValue[0], 'range' => $explodeLineValue[1]);
+      if ($debug > 1) echo "[Debug][readCompat]Added item range<br>";
+    }
   }
   
   if ($debug > 0) echo "</div>";
-  return array($shifted, $ids, $blockblocks, $itemblocks, $blocks, $items);
+  return array($shifted, $ids, $blockblocks, $itemblocks, $blocks, $items, $blockranges, $itemranges);
 }
 
 

@@ -55,10 +55,11 @@ $search[] = ".txt";
 #$itemBlocks = array('item {', 'items {', 'equipables {', 'logic {', '"patterns and misc" {', '"tool parts" {', 'tools {', 'items_ids {', 'signedittool {', 'item.ids {', '"lordmau5/powerboxes/item" {');
 
 { ### READ COMPAT FILES
-$compatEntries = myReadDir('compat/', $search, null, null, 0);
+$compatEntries = myReadDir('compat/', $search, null, null, $debug);
 
 foreach ($compatEntries as $compatEntriesKey => $compatEntriesValue)
 {
+  if ($debug > 2) echo "[Debug][CompatArray]Adding " . $compatEntriesValue['path'] . "<br>";
   $compat[$compatEntriesValue['path']]['path'] = $compatEntriesValue['path'];
 }
 
@@ -70,8 +71,8 @@ foreach ($compat as $compatKey => $compatValue)
 
 foreach ($compat as $compatKey => $compatValue)
 {
-  #echo "[Debug][compat]Reading " . $compatValue['path'] . "<br>";
-  list($shifted, $ids, $blockblocks,$itemblocks, $blocks, $items, $blockranges, $itemranges) = readCompat($compatValue['content'], 0);
+  #echo "<div class=warning>[Debug][compat]Reading " . $compatValue['path'] . "</div>";
+  list($shifted, $ids, $blockblocks,$itemblocks, $blocks, $items, $blockranges, $itemranges) = readCompat($compatValue['content'],  $debug);
   $compat[$compatKey]['ids'] = $ids;
   $compat[$compatKey]['shifted'] = $shifted;
   $compat[$compatKey]['blockblocks'] = $blockblocks;
@@ -240,7 +241,7 @@ if ($step == 'overview')
     
     $dirpath = "extracted/$filekey";
     
-    $entries = myReadDir($dirpath, $search, $ignore, null, $debug);
+    $entries = myReadDir($dirpath, $search, null, null, $debug);
     
     asort($entries);
     
@@ -252,38 +253,43 @@ if ($step == 'overview')
     
     foreach ($config as $configKey => $configValue)
     {
+      $skip = 0;
       $filepath = "extracted/$filekey/" . $configValue['path'];
       
       $contents = myReadFile($filepath);
       if (!$contents)
       {
-        echo "<div class=note>[Note]File " . $configValue['path'] . " is empty!</div>";
+        echo "<div class=note>[Note]File " . $configValue['path'] . " is empty! Skipping!</div>";
         unset($config[$configKey]);
+        $skip = 1;
       }
       else
         $config[$configKey]['contents'] = $contents;
+      
+      if ($skip == 0)
+      {
+        $config[$configKey]['newContents'] = $config[$configKey]['contents'];
         
-      $config[$configKey]['newContents'] = $config[$configKey]['contents'];
-      
-      if ($debug > 0) echo "[Debug][index]Reading file " . $configValue['name'] . ":<br>";
-      
-      if (!(strtolower($compat[$configValue['name']]['shifted']) == 'yes'))
-      {
-        if ($debug > 0) echo "[Debug][index]Shifted " . $configValue['name'] . "<br>";
-        $shift = 256;
-        $config[$configKey]['shifted'] = 256;
+        if ($debug > 0) echo "[Debug][index]Reading file " . $configValue['name'] . ":<br>";
+        
+        if (!(strtolower($compat[$configValue['name']]['shifted']) == 'yes'))
+        {
+          if ($debug > 0) echo "[Debug][index]Shifted " . $configValue['name'] . "<br>";
+          $shift = 256;
+          $config[$configKey]['shifted'] = 256;
+        }
+        else
+        {
+          if ($debug > 0) echo "[Debug][index]Ignored shift on " . $configValue['name'] . "<br>";
+          $shift = 0;
+          $config[$configKey]['shifted'] = 0;
+        }
+        
+        list($config[$configKey]['values'], $config[$configKey]['idCounter']) = extractValues($config[$configKey]['path'], $config[$configKey]['contents'], $compat, $shift, $debug);
+        
+        if ($config[$configKey]['idCounter'] == 0)
+          echo "<div class=warning>[Warning]No id's could be found in " . $configValue['path'] . ". Either there are none, or it contains config blocks with non-standard names! Please report to Forecaster!</div>";
       }
-      else
-      {
-        if ($debug > 0) echo "[Debug][index]Ignored shift on " . $configValue['name'] . "<br>";
-        $shift = 0;
-        $config[$configKey]['shifted'] = 0;
-      }
-      
-      list($config[$configKey]['values'], $config[$configKey]['idCounter']) = extractValues($config[$configKey]['path'], $config[$configKey]['contents'], $compat, $shift, $debug);
-      
-      if ($config[$configKey]['idCounter'] == 0)
-        echo "<div class=warning>[Warning]No id's could be found in " . $configValue['path'] . ". Either there are none, or it contains config blocks with non-standard names! Please report to Forecaster!</div>";
     }
     
     #myVarDump($config);
@@ -407,7 +413,7 @@ if ($step == 'assigning')
           $assigned = false;
           while ($assigned === false)
           {
-            if ($debug > 0) echo "[Debug][blockAssign]Checking $newblockidcounter if conflicting with vanilla!<br>";
+            if ($debug > 0) echo "[Debug][blockAssign]Checking if $newblockidcounter is conflicting with vanilla!<br>";
             if (!in_array($newblockidcounter, $reservedVanillaBlocks))
             {
               $target = $configValueValue['id'] . "=" . $configValueValue['value'];
@@ -436,6 +442,13 @@ if ($step == 'assigning')
   echo "<br>=====Starting item assign!<br>";
   foreach ($config as $configKey => $configValue)
   {
+    echo "<div class=warning>File: " . $configValue['name'] . "</div>";
+    
+    foreach ($compat[$configValue['name']]['itemranges'] as $compatKey => $compatValue)
+    {
+      $localCompat[$compatValue['key']] = $compatValue['range'];
+    }
+    
     foreach ($configValue['values'] as $configValueValue)
     {
       if ($configValueValue['type'] == "item")
@@ -446,7 +459,7 @@ if ($step == 'assigning')
           $assigned = false;
           while ($assigned === false)
           {
-            if ($debug > 0) echo "[Debug][itemAssign]Checking $newitemidcounter if conflicting with vanilla!<br>";
+            if ($debug > 0) echo "[Debug][itemAssign]Checking if $newitemidcounter is conflicting with vanilla!<br>";
             if (!in_array($newitemidcounter, $reservedVanillaItems))
             {
               if (in_array($configValue['name'], $ignoreShift))
@@ -463,8 +476,26 @@ if ($step == 'assigning')
               
               $config[$configKey]['newContents'] = str_replace($target, $needle, $config[$configKey]['newContents']);
               echo "[Debug][itemAssign]Changed <div class=target>$target</div> to <div class=needle>$needle</div> <br>";
-              $newitemidcounter++;
+              
+              $currentKey = strip($configValueValue['id']);
+              
               $assigned = true;
+              if ($configValue['name'] == "PortalGun.cfg")
+              {
+                echo "<div>Looking for '" . $currentKey . "' in localCompat</div>";
+                echo "<div>Key: " . key_in_array($currentKey, $localCompat) . "</div>";
+              }
+              
+              #myVarDump($localCompat);
+              
+              
+              if (key_in_array($currentKey, $localCompat))
+              {
+                echo "<div>Increased item id counter by " . ($localCompat[$currentKey] - 1) . "</div>";
+                $newitemidcounter + ($localCompat[$currentKey] - 1);
+              }
+              else
+                $newitemidcounter++;
             }
             else
             {
@@ -481,7 +512,7 @@ if ($step == 'assigning')
     }
   }
   
-  myVarDump($config);
+  #myVarDump($config);
 
   $_SESSION['config'] = $config;
   

@@ -32,3 +32,11 @@ $compat
       [key] -> Int
     ['items'] -> Array
       [key] -> Int
+    ['blockranges'] -> Array
+      [key] -> Int
+        ['key'] -> String
+        ['range'] -> Int
+    ['itemranges']
+      [key] -> Int
+        ['key'] -> String
+        ['range'] -> Int

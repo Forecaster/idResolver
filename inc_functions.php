@@ -41,11 +41,11 @@ function myVarDump($array)
   echo "<br><br>";
   $dump = print_r($array, true);
   
-  $dump = str_replace('{', '<br>{', $dump);
-  $dump = str_replace('}', '<br>}', $dump);
-  $dump = str_replace('(', '<br>(', $dump);
-  $dump = str_replace(')', '<br>)', $dump);
-  $dump = str_replace('[', '<br>[', $dump);
+  #$dump = str_replace('{', '<br>{', $dump);
+  #$dump = str_replace('}', '<br>}', $dump);
+  #$dump = str_replace('(', '<br>(', $dump);
+  #$dump = str_replace(')', '<br>)', $dump);
+  #$dump = str_replace('[', '<br>[', $dump);
   
   echo nl2br($dump);
 }
@@ -100,14 +100,12 @@ function myReadDir($dirpath, $searchfor, $ignore, $subdir, $debug) #max debug 4
             if (isset($subdir))
             {
               if ($debug >= 4) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]$entry is in a subdir, inserting into entries array as $subdir/$entry!</div>";
-              $entries[$entry_counter]['path'] = $subdir . "/" . $entry;
-              $entries[$entry_counter]['name'] = $entry;
+              $entries[] = array('path' => ($subdir . "/" . $entry), 'name' => $entry);
             }
             else
             {
               if ($debug >= 4) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]$entry has no subdir, inserting into entries array as $entry!</div>";
-              $entries[$entry_counter]['path'] = $entry;
-              $entries[$entry_counter]['name'] = $entry;
+              $entries[] = array('path' => $entry, 'name' => $entry);
             }
           }
           elseif (!stristr($entry, $value) && $debug >= 2)
@@ -288,7 +286,7 @@ function recieveFile($filehandle) //name of file input
     ##File handling:
     if (stristr($_FILES[$filehandle]['name'], '.zip'))
     {
-      if ($_FILES[$filehandle]['size'] < 524288)
+      if ($_FILES[$filehandle]['size'] < 1048576)
       {
         if ($_FILES[$filehandle]['error'] == 0)
         {
@@ -431,6 +429,18 @@ function str_in_array($str, $array)
     if (stristr($str, $arrayValue))
       return true;
   }
+}
+
+function key_in_array($key, $array)
+{
+  foreach ($array as $arrayKey => $arrayValue)
+  {
+    #echo "<div class=note>Checking '$key' against '$arrayKey'</div>";
+    if ($arrayKey == $key)
+      return true;
+  }
+  
+  return false;
 }
 
 function readCompat($content, $debug)

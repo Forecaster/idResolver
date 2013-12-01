@@ -1,8 +1,11 @@
 <?php
+include("inc_functions.php");
 
-$pie['name'] = "strawberry";
+$string = "/LostBooks/folder.cfg";
 
-$pies[] = $pie;
+$explode = explode('/', $string);
 
-echo $pies[0]['name'];
+$explode = cleanArray($explode);
+
+myVarDump($explode);
 ?>

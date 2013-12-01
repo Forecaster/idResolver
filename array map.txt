@@ -23,6 +23,9 @@ $compat
   [key] -> String
     ['path'] -> String
     ['content'] -> String
+    ['ids'] -> String (yes/no)
+    ['ignore'] -> String (yes/no)
+    ['unsupported'] -> String (yes/no)
     ['shifted'] -> String
     ['blockblocks'] -> Array
       [key] -> Int

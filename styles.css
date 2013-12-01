@@ -58,6 +58,11 @@ div.note
   color: gray;
 }
 
+div.highNote
+{
+  color: black;
+}
+
 TD.step
 {
   color: red;

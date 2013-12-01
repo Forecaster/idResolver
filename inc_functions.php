@@ -64,7 +64,7 @@ function myReadFile($filepath)
 
 function myReadDir($dirpath, $searchfor, $ignore, $subdir, $debug) #max debug 4
 {
-  global $indent;
+  global $indent, $compat;
   if (isset($subdir)) $indent = $indent + 1;
   if ($debug > 0) echo "<div class=functionOutput>";
   if ($debug > 2 && isset($subdir)) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]Reading sub-dir: " . basename($subdir) . "</div>";
@@ -80,13 +80,26 @@ function myReadDir($dirpath, $searchfor, $ignore, $subdir, $debug) #max debug 4
       $entrypath = $dirpath . "/" . $entry;
       if (is_dir($entrypath))
       {
-        if ($debug >= 2) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]$entry is a directory!</div>";
-        $newEntries = myReadDir($entrypath, $searchfor, $ignore, $subdir."/".$entry, $debug);
-        if (count($newEntries) != 0)
-          if (isset($entries))
-            $entries = array_merge($entries, $newEntries);
-          else
-            $entries = $newEntries;
+        if (isset($compat))
+        {
+          if ($debug >= 2) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]Checking " . ($subdir."/".$entry."/folder.cfg") . " against folder ignore!</div>";
+          if ($debug >= 2) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]Value: " . $compat[($subdir."/".$entry."/folder.cfg")]['ignore'] . "</div>";
+        }
+        
+        if (isset($compat) && $compat[($subdir."/".$entry."/folder.cfg")]['ignore'] == 'yes')
+        {
+          echo "<div class=note>[Note]Ignored subdir $entry according to compat!</div>";
+        }
+        else
+        {
+          if ($debug >= 2) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]$entry is a directory!</div>";
+          $newEntries = myReadDir($entrypath, $searchfor, $ignore, $subdir."/".$entry, $debug);
+          if (count($newEntries) != 0)
+            if (isset($entries))
+              $entries = array_merge($entries, $newEntries);
+            else
+              $entries = $newEntries;
+        }
       }
       else
       {
@@ -146,11 +159,11 @@ function extractValues($filename, $contents, $compat, $shift, $debug) #max debug
   }
   
   if ($foundCompat == 1)
-    echo "<div>[Debug][extractValues]Found compat file for $filename!</div>";
+    if ($debug > 0) echo "<div>[Debug][extractValues]Found compat file $compatName for $filename!</div>";
   else
-    echo "<div>[Debug][extractValues]Found no compat file for $filename!</div>";
+    if ($debug > 0) echo "<div>[Debug][extractValues]Found no compat file for $filename!</div>";
   
-  if ($compat[$compatName]['ids'] != 'false')
+  if ($compat[$compatName]['ids'] != 'no' && $compat[$compatName]['unsupported'] != 'yes')
   {
     $counter = 0;
     $total_counter = 0;
@@ -186,9 +199,11 @@ function extractValues($filename, $contents, $compat, $shift, $debug) #max debug
     foreach ($line as $lineKey => $lineValue)
     {
       unset($id);
-      list($key, $id) = explode('=', $lineValue);
+      unset($key);
+      if (!stristr('/', $lineValue) && !stristr('#', $lineValue))
+        list($key, $id) = explode('=', $lineValue);
       
-      if (isset($id) && is_numeric($id))
+      if (isset($id) && is_numeric($id) && $id > 0)
       {
         $key = str_replace('I:', '', $key);
         #if ($debug > 0) echo "<div>[Debug][extractValues]Scanning key: $key</div>";
@@ -240,21 +255,37 @@ function extractValues($filename, $contents, $compat, $shift, $debug) #max debug
             echo "[Debug][extractValues]Ignored invalid config block! ($lineValue)<br>";
         }
       }
+      elseif (stristr($lineValue, '}'))
+      {
+        if ($type == "block" || $type == "item")
+        {
+          $type = "invalid";
+          if ($debug >= 4)
+            echo "[Debug][extractValues]Block ended ($lineValue)<br>";
+        }
+      }
       
-      if ($type != "invalid")
-      {        
+      if ($type != "invalid" && !stristr('/', $lineValue) && !stristr('#', $lineValue))
+      {
         unset($id);
+        unset($key);
         list($key, $id) = explode('=', $lineValue);
         
-        if (isset($id) && is_numeric($id))
+        if (isset($id) && is_numeric($id) && $id > 0)
         {
           $configValues[$counter]['type'] = $type;
           $configValues[$counter]['id'] = $key;
           
           if ($type == "item")
+          {
+            if ($debug >= 4) echo "[Debug][extractValues]Item: " . $lineKey . " => " . $lineValue . "<br>";
             $configValues[$counter]['value'] = $id + $shift;
+          }
           else
+          {
+            if ($debug >= 4) echo "[Debug][extractValues]Item: " . $lineKey . " => " . $lineValue . "<br>";
             $configValues[$counter]['value'] = $id;
+          }
           
           $counter++;
         }
@@ -262,8 +293,10 @@ function extractValues($filename, $contents, $compat, $shift, $debug) #max debug
       $total_counter++;
     }
   }
-  else
+  elseif ($compat[$compatName]['ids'] == 'no')
     $counter = -1;
+  elseif ($compat[$compatName]['unsupported'] == 'yes')
+    $counter = -2;
   
   if ($debug > 0) echo "<div>[Debug][extractValues]Found $counter id's!</div>";
   if ($debug > 0) echo "</div>";
@@ -461,12 +494,6 @@ function readCompat($content, $debug)
       if ($debug > 0) echo "[Debug][readCompat]Detected shift<br>";
     }
     
-    if (stristr('-noids', $lineValue))
-    {
-      $ids = 'false';
-      if ($debug > 0) echo "[Debug][readCompat]Detected no ids<br>";
-    }
-    
     if (stristr('-blockblocks', $lineValue))
     {
       $currentType = "blockblocks";
@@ -529,10 +556,39 @@ function readCompat($content, $debug)
       $itemranges[] = array('key' => $explodeLineValue[0], 'range' => $explodeLineValue[1]);
       if ($debug > 1) echo "[Debug][readCompat]Added item range<br>";
     }
+    elseif (stristr('-unsupported', $lineValue))
+    {
+      return "unsupported";
+      if ($debug > 0) echo "[Debug][readCompat]Detected unsupported<br>";
+    }
+    elseif (stristr('-noids', $lineValue))
+    {
+      return "noids";
+      if ($debug > 0) echo "[Debug][readCompat]Detected no ids<br>";
+    }
+    elseif (stristr('-ignore', $lineValue))
+    {
+      return "ignore";
+      if ($debug > 0) echo "[Debug][readCompat]Detected ignore<br>";
+    }
   }
   
   if ($debug > 0) echo "</div>";
-  return array($shifted, $ids, $blockblocks, $itemblocks, $blocks, $items, $blockranges, $itemranges);
+  return array($shifted, $blockblocks, $itemblocks, $blocks, $items, $blockranges, $itemranges);
+}
+
+function cleanArray($array)
+{
+  foreach ($array as $arrayKey => $arrayValue)
+  {
+    if ($arrayValue != null)
+      if (is_int($arrayKey))
+        $returnArray[] = $arrayValue;
+      else
+        $returnArray[$arrayKey] = $arrayValue;
+  }
+  
+  return $returnArray;
 }
 
 

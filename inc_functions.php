@@ -231,7 +231,9 @@ function extractValues($filename, $contents, $compat, $shift, $debug) #max debug
       }
     }
     
-   if ($debug > 0) echo "<div>[Debug][extractValues]Trying blocks</div>";
+    if ($debug > 0) echo "<div>[Debug][extractValues]Trying blocks</div>";
+    unset($type);
+    
     foreach ($line as $lineKey => $lineValue)
     {
       if (stristr($lineValue, '{'))
@@ -265,7 +267,7 @@ function extractValues($filename, $contents, $compat, $shift, $debug) #max debug
         }
       }
       
-      if ($type != "invalid" && !stristr('/', $lineValue) && !stristr('#', $lineValue))
+      if (isset($type) && $type != "invalid" && !stristr('/', $lineValue) && !stristr('#', $lineValue))
       {
         unset($id);
         unset($key);
@@ -278,12 +280,20 @@ function extractValues($filename, $contents, $compat, $shift, $debug) #max debug
           
           if ($type == "item")
           {
-            if ($debug >= 4) echo "[Debug][extractValues]Item: " . $lineKey . " => " . $lineValue . "<br>";
-            $configValues[$counter]['value'] = $id + $shift;
-          }
-          else
+            if ($shift > 0)
+            {
+              if ($debug >= 4) echo "[Debug][extractValues]Item $id (+ $shift): " . $lineKey . " => " . $lineValue . "<br>";
+              $configValues[$counter]['value'] = ($id + $shift);
+            }
+            else
+            {
+              if ($debug >= 4) echo "[Debug][extractValues]Item: " . $lineKey . " => " . $lineValue . "<br>";
+              $configValues[$counter]['value'] = $id;
+            }
+          } 
+          elseif ($type == "block")
           {
-            if ($debug >= 4) echo "[Debug][extractValues]Item: " . $lineKey . " => " . $lineValue . "<br>";
+            if ($debug >= 4) echo "[Debug][extractValues]Block: " . $lineKey . " => " . $lineValue . "<br>";
             $configValues[$counter]['value'] = $id;
           }
           
@@ -459,8 +469,11 @@ function str_in_array($str, $array)
 {
   foreach ($array as $arrayValue)
   {
-    if (stristr($str, $arrayValue))
+    if ($arrayValue == trim($str))
+    {
+      #echo "<div>[Debug][str_in_array]Value '$str' matches '$arrayValue'</div>";
       return true;
+    }
   }
 }
 
@@ -479,7 +492,7 @@ function key_in_array($key, $array)
 function readCompat($content, $debug)
 {
   if ($debug > 0) echo "<div>";
-  $shifted = 'no';
+  $preshifted = 'no';
   $ids = 'yes';
   $currentType = "none";
   
@@ -488,9 +501,9 @@ function readCompat($content, $debug)
   foreach ($line as $lineKey => $lineValue)
   {
     if ($debug > 0) echo "[Debug][readCompat]Current line: $lineValue<br>";
-    if (stristr('-shifted=yes', $lineValue))
+    if (stristr('-preshifted=yes', $lineValue))
     {
-      $shifted = 'yes';
+      $preshifted = 'yes';
       if ($debug > 0) echo "[Debug][readCompat]Detected shift<br>";
     }
     
@@ -574,7 +587,7 @@ function readCompat($content, $debug)
   }
   
   if ($debug > 0) echo "</div>";
-  return array($shifted, $blockblocks, $itemblocks, $blocks, $items, $blockranges, $itemranges);
+  return array($preshifted, $blockblocks, $itemblocks, $blocks, $items, $blockranges, $itemranges);
 }
 
 function cleanArray($array)

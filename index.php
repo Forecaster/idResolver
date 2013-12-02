@@ -27,11 +27,11 @@ $search[] = ".txt";
 #$itemBlocks = array('item {', 'items {', 'equipables {', 'logic {', '"patterns and misc" {', '"tool parts" {', 'tools {', 'items_ids {', 'signedittool {', 'item.ids {', '"lordmau5/powerboxes/item" {');
 
 { ### READ COMPAT FILES
-$compatEntries = myReadDir('compat/', $search, null, null, $debug);
+$compatEntries = myReadDir('compat/', $search, null, null, ($debug -4));
 
 foreach ($compatEntries as $compatEntriesKey => $compatEntriesValue)
 {
-  if ($debug > 2) echo "[Debug][CompatArray]Adding " . $compatEntriesValue['path'] . "<br>";
+  if (($debug -4) > 2) echo "[Debug][CompatArray]Adding " . $compatEntriesValue['path'] . "<br>";
   $compat[$compatEntriesValue['path']]['path'] = $compatEntriesValue['path'];
 }
 
@@ -44,17 +44,17 @@ foreach ($compat as $compatKey => $compatValue)
 foreach ($compat as $compatKey => $compatValue)
 {
   unset($return);
-  if ($debug > 0) echo "<div class=warning>[Debug][compat]Reading " . $compatValue['path'] . "</div>";
-  $return = readCompat($compatValue['content'],  $debug);
+  if (($debug -4) > 0) echo "<div class=warning>[Debug][compat]Reading " . $compatValue['path'] . "</div>";
+  $return = readCompat($compatValue['content'],  ($debug -4));
   
-  if ($debug > 0) echo "<div class=warning>[Debug][CompatReturn] $return</div>";
+  if (($debug -4) > 0) echo "<div class=warning>[Debug][CompatReturn] $return</div>";
   
   if (is_array($return))
   {
     list($shifted, $blockblocks,$itemblocks, $blocks, $items, $blockranges, $itemranges) = $return;
     $compat[$compatKey]['ids'] = 'yes';
     $compat[$compatKey]['ignore'] = 'no';
-    $compat[$compatKey]['shifted'] = $shifted;
+    $compat[$compatKey]['preshifted'] = $shifted;
     $compat[$compatKey]['blockblocks'] = $blockblocks;
     $compat[$compatKey]['itemblocks'] = $itemblocks;
     $compat[$compatKey]['blocks'] = $blocks;
@@ -90,6 +90,8 @@ $startitem = 4096;
 
 $maxBlock = 4095;
 $maxItem = 31999;
+
+$shiftValue = 256;
 
 $indent = 0;
 ?>
@@ -165,8 +167,7 @@ if ($step == 'upload')
   <br>
   Enter key to access previous file (Not implemented yet):<br>
   <form action='' method='post'>
-    <input type=hidden name=step value=4 />
-    <input type=text name=key placeholder='Key' style='width: 100%;'/>
+    <input type=text name=step placeholder='Key' style='width: 100%;'/>
     <input class=button type=submit value='Submit Key' />
   </form>
   <br>
@@ -239,12 +240,18 @@ if ($step == 'overview')
     {
       $config[$entriesKey]['path'] = $entriesValue['path'];
       $config[$entriesKey]['name'] = $entriesValue['name'];
+      
+      if (strpos($configValue['path'], "/") == 0)
+        $config[$entriesKey]['fullpath'] = "extracted/$filekey/" . $entriesValue['path'];
+      else
+        $config[$entriesKey]['fullpath'] = "extracted/$filekey" . $entriesValue['path'];
     }
     
     foreach ($config as $configKey => $configValue)
     {
       $skip = 0;
-      $filepath = "extracted/$filekey/" . $configValue['path'];
+      echo "<div>[Debug]Reading file " . $configValue['fullpath'] . "</div>";
+      $filepath = $configValue['fullpath'];
       
       $contents = myReadFile($filepath);
       if (!$contents)
@@ -262,17 +269,17 @@ if ($step == 'overview')
         
         if ($debug > 0) echo "[Debug][index]Reading file " . $configValue['name'] . ":<br>";
         
-        if (!(strtolower($compat[$configValue['name']]['shifted']) == 'yes'))
+        if (!(strtolower($compat[$configValue['name']]['preshifted']) == 'yes'))
         {
           if ($debug > 0) echo "[Debug][index]Shifted " . $configValue['name'] . "<br>";
-          $shift = 256;
-          $config[$configKey]['shifted'] = 256;
+          $shift = $shiftValue;
+          $config[$configKey]['preshifted'] = 'yes';
         }
         else
         {
           if ($debug > 0) echo "[Debug][index]Ignored shift on " . $configValue['name'] . "<br>";
           $shift = 0;
-          $config[$configKey]['shifted'] = 0;
+          $config[$configKey]['preshifted'] = 'no';
         }
         
         list($config[$configKey]['values'], $config[$configKey]['idCounter']) = extractValues($config[$configKey]['path'], $config[$configKey]['contents'], $compat, $shift, $debug);
@@ -329,10 +336,17 @@ if ($step == 'overview')
           $type = $valuesValue['type'];
           $idvalue = $valuesValue['value'];
           
-          echo "
+          if ($configValue['preshifted'] == 'yes')
+            echo "
           <div class=option>
-            <input type=checkbox name='$id' value='$idvalue' id='box_$value_counter' /><label for='box_$value_counter'>$type - $id=$idvalue</label>
+            <input type=checkbox name='$id' value='$idvalue' id='box_$value_counter' /><label for='box_$value_counter'>$type - $id=" . ($idvalue - $shiftValue) . " (in-game: $idvalue)</label>
           </div>";
+          else
+            echo "
+          <div class=option>
+            <input type=checkbox name='$id' value='$idvalue' id='box_$value_counter' /><label for='box_$value_counter'>$type - $id=$idvalue (in-game: $idvalue)</label>
+          </div>";
+          
           $value_counter++;
         }
         echo "</div>";
@@ -490,20 +504,26 @@ if ($step == 'assigning')
               if ($debug > 0) echo "[Debug][itemAssign]Checking if $newitemidcounter is conflicting with vanilla!<br>";
               if (!in_array($newitemidcounter, $reservedVanillaItems))
               {
-                if (in_array($configValue['name'], $ignoreShift))
-                  $target = $configValueValue['id'] . "=" . $configValueValue['value'];
+                if ($configValue['preshifted'] == 'yes')
+                  $target = $configValueValue['id'] . "=" . ($configValueValue['value'] - $shiftValue);
                 else
-                  $target = $configValueValue['id'] . "=" . ($configValueValue['value'] - $configValue['shifted']);
+                  $target = $configValueValue['id'] . "=" . $configValueValue['value'];
                 
                 if ($debug > 0) echo "[Debug][itemAssign]Shift value: " . $configValue['shifted'] . "<br>";
                 
-                if (in_array($configValue['name'], $ignoreShift))
-                  $needle = $configValueValue['id'] . "=" . ($newitemidcounter - $configValue['shifted']);
+                if ($configValue['preshifted'] == 'yes')
+                  $needle = $configValueValue['id'] . "=" . ($newitemidcounter - $shiftValue);
                 else
                   $needle = $configValueValue['id'] . "=" . $newitemidcounter;
+                  
+                $source = $config[$configKey]['newContents'];
                 
-                $config[$configKey]['newContents'] = str_replace($target, $needle, $config[$configKey]['newContents']);
-                echo "[Debug][itemAssign]Changed '<div class=target>$target</div>' to '<div class=needle>$needle</div>' <br>";
+                $change = str_replace($target, $needle, $source);
+                
+                if ($source != $change)
+                  echo "<div>[Debug][itemAssign]Changed '<div class=target>$target</div>' to '<div class=needle>$needle</div>'</div>";
+                else
+                  echo "<div class=error>[Debug][itemAssign]Failed to change '$target' to '$needle'</div>";
                 
                 $currentKey = trim($configValueValue['id']);
                 
@@ -541,9 +561,10 @@ if ($step == 'assigning')
     }
   }
   
-  myVarDump($config);
+  #myVarDump($config);
 
   $_SESSION['config'] = $config;
+  $_SESSION['debug'] = $debug;
   
   /*echo "New configs:<br>";
   foreach ($config as $key => $value)
@@ -562,38 +583,20 @@ if ($step == 'download')
   $config = $_SESSION['config'];
   $filekey = $_SESSION['filekey'];
   
+  echo $debug . "<br>";
   step($step);
-  echo "<div id=key class=key>" . $filekey . "</div><br>";
+  echo "<div id=key class=key>" . $filekey . "</div>";
   
-  $debug = 0;
-  foreach ($config as $key => $value)
+  foreach ($config as $configKey => $configValue)
   {
-    $filepath = "extracted/$filekey/" . $value['path'];
-    if ($debug > 0) echo "[Debug]Working in\"$filepath\" on " . $value['path'] . "<br>";
+    $filepath = $configValue['fullpath'];
+    if ($debug > 0) echo "<div>[Debug]Working in '" . $configValue['fullpath'] . "'</div>";
     
-    if (writeToFile($value['newContents'], $filepath))
-      if ($debug >= 1) echo "Success on " . $value['path'] . "!<br>";
+    if (writeToFile($configValue['newContents'], $filepath))
+      if ($debug >= 1) echo "<div>[Debug]Success on " . $configValue['path'] . "!</div>";
     else
-      if ($debug >= 1) echo "Fail on " . $value['path'] . "!<br>";
+      if ($debug >= 1) echo "<div class=error>[Debug]Fail on " . $configValue['path'] . "!</div>";
   }
-  
-  /*
-  foreach ($config as $key => $value)
-  {
-    $addpath = "extracted/$filekey/" . $value['path'];
-    $targetpath = "repacked/$filekey.zip";
-    
-    fopen($targetpath, 'w');
-    
-    $newname = $value['path'];
-    
-    echo "Adding " . $value['name'] . " from <r>$addpath</r> to <r>$targetpath</r> as <r>$newname</r><br>";
-    
-    if (addFile($config, $targetpath, $newname))
-      echo "Success on " . $value['path'] . "!<br>";
-    else
-      echo "Fail on " . $value['path'] . "!<br>";
-  }*/
   
   $targetpath = "repacked/$filekey.zip";
   $result = addFiles($filekey, $config, $targetpath, $debug);
@@ -606,28 +609,28 @@ if ($step == 'download')
   $searchfor[] = ".zip";
   $ignore[] = "index.php";
   
-  $archives = myReadDir($dirpath, $searchfor, $ignore, null, $debug);
+  $archives = myReadDir($dirpath, $searchfor, $ignore, null, 0);
   
-  foreach ($archives as $value)
+  foreach ($archives as $archivesValue)
   {
-    $name = "repacked/" . $value['name'];
+    $name = "repacked/" . $archivesValue['name'];
     $datetime = filemtime($name);
     if ($datetime !== false)
       if (($datetime + 86400) < time())
       {
         unlink($name);
-        if ($debug > 0) echo "[Debug]Deleted $name.";
+        if ($debug > 0) echo "<div>[Debug]Deleted $name.</div>";
       }
   }
   
   if (!$result)
-    echo "Error while attempting to archive! Please retry!<br>";
+    echo "<div class=error>Error while attempting to archive! Please retry!</div>";
   else
-    echo "Archiving succeeded! You will find your file here: <a href='$targetpath'>[DOWNLOAD]</a><br>
+    echo "<div>Archiving succeeded! You will find your file here: <a href='$targetpath'>[DOWNLOAD]</a><br>
     <br>
     Download the file into your config directory (You should make a backup of it first) then right click it and \"Extract here\" (assuming you are using WinRAR) overwrite everything.<br>
     <br>
-    Should you need to redownload the file later it will remain for 24h. Use your key in step one to gain access to it, or give access to someone else.";
+    Should you need to redownload the file later it will remain for 24h. Use your key in step one to gain access to it, or give access to someone else.</div>";
   
   session_write_close();
 }

@@ -8,6 +8,7 @@ The array containing the configs
 $config
   [key] -> Int
     ['path'] -> String
+    ['fullpath'] -> String
     ['name'] -> String
     ['contents'] - String
     ['newContents'] - String
@@ -26,7 +27,7 @@ $compat
     ['ids'] -> String (yes/no)
     ['ignore'] -> String (yes/no)
     ['unsupported'] -> String (yes/no)
-    ['shifted'] -> String
+    ['preshifted'] -> String
     ['blockblocks'] -> Array
       [key] -> Int
     ['itemblocks'] -> Array

@@ -312,6 +312,7 @@ function extractValues($filename, $contents, $compat, $shift, $debug) #max debug
   if ($debug > 0) echo "</div>";
   return array($configValues, $counter);
 }
+}
 
 function recieveFile($filehandle) //name of file input
 {
@@ -391,20 +392,6 @@ function extractZip($filepath, $targetpath) //name of target, extract to path
     return false;
 }
 
-#DEPRECATED
-function addFile($addpath, $targetpath, $newname)
-{
-  $zip = new ZipArchive;
-  
-  if ($zip->open($targetpath, ZIPARCHIVE::CREATE) !== TRUE) {
-    return false;
-  }
-  
-  $zip->addFile($addpath, $newname);
-  $zip->close();
-  return true;
-}
-
 function addFiles($filekey, $addpaths, $targetpath, $debug) #max debug 1
 {
   $zip = new ZipArchive;
@@ -418,8 +405,12 @@ function addFiles($filekey, $addpaths, $targetpath, $debug) #max debug 1
   {
     $sourcepath = "extracted/$filekey/" . $value['path'];
     $newname = $value['path'];
-    if ($debug >= 1) echo "[Debug][addFiles]Attempting to add $sourcepath to $targetpath<br>";
-    $zip->addFile($sourcepath, $newname);
+    $result = $zip->addFile($sourcepath, $newname);
+    
+    if ($result === true)
+      if ($debug >= 1) echo "[Debug][addFiles]Added $sourcepath to $targetpath<br>";
+    else
+      if ($debug >= 1) echo "[Debug][addFiles]Failed to add $sourcepath to $targetpath<br>";
   }
   $zip->close();
   return true;
@@ -448,10 +439,7 @@ function writeToFile($string, $filepath)
   
   $result = fwrite($filehandle, $string);
   
-  if ($result !== false)
-    return true;
-  else
-    return false;
+  return $result;
 }
 
 function rrmdir($dir)

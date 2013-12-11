@@ -2,7 +2,7 @@
 require_once "inc_functions.php";
 
 { ### ERRORS
-$str_error[1] = "Invalid file type.";
+$str_error[1] = "Invalid file type. Make sure your archive is in the .zip format.";
 $str_error[2] = "File is too large.";
 $str_error[3] = "File error.";
 $str_error[4] = "File with same name already exists.";
@@ -22,12 +22,8 @@ $search[] = ".cfg";
 $search[] = ".conf";
 $search[] = ".txt";
 
-#$blockBlocks = array('block {', 'blocks {', 'blocks_ids {', '"lordmau5/powerboxes/block" {');
-
-#$itemBlocks = array('item {', 'items {', 'equipables {', 'logic {', '"patterns and misc" {', '"tool parts" {', 'tools {', 'items_ids {', 'signedittool {', 'item.ids {', '"lordmau5/powerboxes/item" {');
-
 { ### READ COMPAT FILES
-$compatEntries = myReadDir('compat/', $search, null, null, ($debug -4));
+$compatEntries = myReadDir('compat/', $search, null, null, 0, ($debug -4));
 
 foreach ($compatEntries as $compatEntriesKey => $compatEntriesValue)
 {
@@ -51,7 +47,7 @@ foreach ($compat as $compatKey => $compatValue)
   
   if (is_array($return))
   {
-    list($shifted, $blockblocks,$itemblocks, $blocks, $items, $blockranges, $itemranges) = $return;
+    list($shifted, $blockblocks, $itemblocks, $blocks, $items, $blockranges, $itemranges) = $return;
     $compat[$compatKey]['ids'] = 'yes';
     $compat[$compatKey]['ignore'] = 'no';
     $compat[$compatKey]['preshifted'] = $shifted;
@@ -232,9 +228,12 @@ if ($step == 'overview')
     
     $dirpath = "extracted/$filekey";
     
-    $entries = myReadDir($dirpath, $search, null, null, $debug);
+    unset($levels);
+    $entries = myReadDir($dirpath, $search, null, null, 0, $debug);
     
     asort($entries);
+    
+    #myVarDump($levels);
     
     foreach ($entries as $entriesKey => $entriesValue)
     {
@@ -250,7 +249,7 @@ if ($step == 'overview')
     foreach ($config as $configKey => $configValue)
     {
       $skip = 0;
-      echo "<div>[Debug]Reading file " . $configValue['fullpath'] . "</div>";
+      if ($debug > 0) echo "<div>[Debug]Reading file " . $configValue['fullpath'] . "</div>";
       $filepath = $configValue['fullpath'];
       
       $contents = myReadFile($filepath);
@@ -267,17 +266,17 @@ if ($step == 'overview')
       {
         $config[$configKey]['newContents'] = $config[$configKey]['contents'];
         
-        if ($debug > 0) echo "[Debug][index]Reading file " . $configValue['name'] . ":<br>";
+        if ($debug > 0) echo "<div>[Debug][index]Reading file " . $configValue['name'] . ":</div>";
         
         if (!(strtolower($compat[$configValue['name']]['preshifted']) == 'yes'))
         {
-          if ($debug > 0) echo "[Debug][index]Shifted " . $configValue['name'] . "<br>";
+          if ($debug > 0) echo "<div>[Debug][index]Shifted " . $configValue['name'] . "</div>";
           $shift = $shiftValue;
           $config[$configKey]['preshifted'] = 'yes';
         }
         else
         {
-          if ($debug > 0) echo "[Debug][index]Ignored shift on " . $configValue['name'] . "<br>";
+          if ($debug > 0) echo "<div>[Debug][index]Ignored shift on " . $configValue['name'] . "</div>";
           $shift = 0;
           $config[$configKey]['preshifted'] = 'no';
         }
@@ -295,7 +294,6 @@ if ($step == 'overview')
       }
     }
     
-    #myVarDump($config);
     
     /*foreach ($config as $key => $value)
     {
@@ -336,15 +334,15 @@ if ($step == 'overview')
           $type = $valuesValue['type'];
           $idvalue = $valuesValue['value'];
           
-          if ($configValue['preshifted'] == 'yes')
+          if ($configValue['preshifted'] != 'yes' || $valuesValue['type'] == "block")
             echo "
           <div class=option>
-            <input type=checkbox name='$id' value='$idvalue' id='box_$value_counter' /><label for='box_$value_counter'>$type - $id=" . ($idvalue - $shiftValue) . " (in-game: $idvalue)</label>
+            <input type=checkbox name='$id' value='$idvalue' id='box_$value_counter' /><label for='box_$value_counter'>$type - $id=$idvalue (in-game: $idvalue)</label>
           </div>";
           else
             echo "
           <div class=option>
-            <input type=checkbox name='$id' value='$idvalue' id='box_$value_counter' /><label for='box_$value_counter'>$type - $id=$idvalue (in-game: $idvalue)</label>
+            <input type=checkbox name='$id' value='$idvalue' id='box_$value_counter' /><label for='box_$value_counter'>$type - $id=$idvalue (in-game: " . ($idvalue + $shiftValue) . ")</label>
           </div>";
           
           $value_counter++;
@@ -359,6 +357,9 @@ if ($step == 'overview')
   {
     echo "Error " . $error . ": " . $str_error[$error];
   }
+  
+  myVarDump($config);
+  #myVarDump($levels);
 }
 }
 
@@ -504,13 +505,12 @@ if ($step == 'assigning')
               if ($debug > 0) echo "[Debug][itemAssign]Checking if $newitemidcounter is conflicting with vanilla!<br>";
               if (!in_array($newitemidcounter, $reservedVanillaItems))
               {
-                if ($configValue['preshifted'] == 'yes')
-                  $target = $configValueValue['id'] . "=" . ($configValueValue['value'] - $shiftValue);
-                else
-                  $target = $configValueValue['id'] . "=" . $configValueValue['value'];
+                if ($debug > 0) echo "<div>[Debug][itemAssign]Shift value: " . $configValue['preshifted'] . "</div>";
                 
-                if ($debug > 0) echo "[Debug][itemAssign]Shift value: " . $configValue['shifted'] . "<br>";
+                //TARGET
+                $target = $configValueValue['id'] . "=" . $configValueValue['value'];
                 
+                //NEEDLE
                 if ($configValue['preshifted'] == 'yes')
                   $needle = $configValueValue['id'] . "=" . ($newitemidcounter - $shiftValue);
                 else
@@ -520,12 +520,18 @@ if ($step == 'assigning')
                 
                 $change = str_replace($target, $needle, $source);
                 
-                if ($source != $change)
+                if ($source == $change)
+                  echo "<div class=error>[Debug][itemAssign]Failed to change '$target' to '$needle'</div>";
+                elseif ($source != $change)
                   echo "<div>[Debug][itemAssign]Changed '<div class=target>$target</div>' to '<div class=needle>$needle</div>'</div>";
                 else
-                  echo "<div class=error>[Debug][itemAssign]Failed to change '$target' to '$needle'</div>";
+                  echo "<div>[Debug][itemAssign]Something odd happened here...</div>";
+                
+                #echo "<div style='border: 1px solid red;'>[" . nl2br($source) . "]</div>";
                 
                 $currentKey = trim($configValueValue['id']);
+                
+                $config[$configKey]['newContents'] = $change;
                 
                 $assigned = true;
                 // if ($configValue['name'] == "PortalGun.cfg")
@@ -561,7 +567,7 @@ if ($step == 'assigning')
     }
   }
   
-  #myVarDump($config);
+  myVarDump($config);
 
   $_SESSION['config'] = $config;
   $_SESSION['debug'] = $debug;
@@ -607,9 +613,8 @@ if ($step == 'download')
   $dirpath = "repacked/";
   
   $searchfor[] = ".zip";
-  $ignore[] = "index.php";
   
-  $archives = myReadDir($dirpath, $searchfor, $ignore, null, 0);
+  $archives = myReadDir($dirpath, $searchfor, null, null, 0);
   
   foreach ($archives as $archivesValue)
   {

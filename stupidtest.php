@@ -1,11 +1,9 @@
 <?php
 include("inc_functions.php");
 
-$string = "/LostBooks/folder.cfg";
+$string = "spacepie";
 
-$explode = explode('/', $string);
+$pos = strpos($string, 'space');
 
-$explode = cleanArray($explode);
-
-myVarDump($explode);
+echo "Pos: $pos";
 ?>

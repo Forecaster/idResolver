@@ -62,9 +62,9 @@ function myReadFile($filepath)
     return $contents;
 }
 
-function myReadDir($dirpath, $searchfor, $ignore, $subdir, $debug) #max debug 4
+function myReadDir($dirpath, $searchfor, $ignore, $subdir, $level, $debug) #max debug 4
 {
-  global $indent, $compat;
+  global $indent, $compat, $levels;
   if (isset($subdir)) $indent = $indent + 1;
   if ($debug > 0) echo "<div class=functionOutput>";
   if ($debug > 2 && isset($subdir)) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]Reading sub-dir: " . basename($subdir) . "</div>";
@@ -82,23 +82,50 @@ function myReadDir($dirpath, $searchfor, $ignore, $subdir, $debug) #max debug 4
       {
         if (isset($compat))
         {
-          if ($debug >= 2) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]Checking " . ($subdir."/".$entry."/folder.cfg") . " against folder ignore!</div>";
-          if ($debug >= 2) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]Value: " . $compat[($subdir."/".$entry."/folder.cfg")]['ignore'] . "</div>";
+          if ($level == 0)
+            $compatTarget = $subdir."/".$entry."/folder.cfg";
+          else
+          {
+            $counter = 1;
+            while ($counter != $level)
+            {
+              $subdir = str_replace(dirname($subdir), '', $subdir);
+              $counter++;
+            }
+            
+            if (substr($subdir, 0, 1) == "/")
+              $compatTarget = $subdir."/".$entry."/folder.cfg";
+            else
+              $compatTarget = "/".$subdir."/".$entry."/folder.cfg";
+              
+            #echo "<div>Level: $level</div>";
+            #echo "<div>$subdir</div>";
+            #echo "<div>$compatTarget</div>";
+          }
+          
+          if ($debug >= 2) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]Checking $compatTarget against folder ignore!</div>";
+          if ($debug >= 2) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]Value: " . $compat[$compatTarget]['ignore'] . "</div>";
+        }
+        else
+        {
+          if ($debug >= 1) echo "<div class=warning>[Debug][myReadDir]Compat array not set!</div>";
         }
         
-        if (isset($compat) && $compat[($subdir."/".$entry."/folder.cfg")]['ignore'] == 'yes')
+        if (isset($compat) && $compat[$compatTarget]['ignore'] == 'yes')
         {
           echo "<div class=note>[Note]Ignored subdir $entry according to compat!</div>";
         }
         else
         {
           if ($debug >= 2) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]$entry is a directory!</div>";
-          $newEntries = myReadDir($entrypath, $searchfor, $ignore, $subdir."/".$entry, $debug);
+          $level++;
+          $newEntries = myReadDir($entrypath, $searchfor, $ignore, $subdir."/".$entry, $level, $debug);
           if (count($newEntries) != 0)
             if (isset($entries))
               $entries = array_merge($entries, $newEntries);
             else
               $entries = $newEntries;
+          $level--;
         }
       }
       else
@@ -120,6 +147,9 @@ function myReadDir($dirpath, $searchfor, $ignore, $subdir, $debug) #max debug 4
               if ($debug >= 4) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]$entry has no subdir, inserting into entries array as $entry!</div>";
               $entries[] = array('path' => $entry, 'name' => $entry);
             }
+            
+            if ($debug >= 2) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]Current level: $level</div>";
+            $levels["$level"] = $levels["$level"] +1;
           }
           elseif (!stristr($entry, $value) && $debug >= 2)
           {
@@ -137,11 +167,13 @@ function myReadDir($dirpath, $searchfor, $ignore, $subdir, $debug) #max debug 4
   if ($debug >= 2 && isset($subdir)) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]Finished reading sub-dir: " . basename($subdir) . "</div>";
   if ($debug > 0) echo "</div>";
   if (isset($subdir)) $indent = $indent - 1;
+  
   return $entries;
 }
 
 function extractValues($filename, $contents, $compat, $shift, $debug) #max debug 4
 {
+  if ($debug > 0) echo "<div>[Debug][extractValues]Recieved shift value $shift</div>";
   global $defaultBlockblocks, $defaultItemblocks;
   $counter = 0;
   $total_counter = 0;
@@ -222,7 +254,7 @@ function extractValues($filename, $contents, $compat, $shift, $debug) #max debug
         {
           if ($debug >= 4) echo "[Debug][extractValues]Item: " . $lineKey . " => " . $lineValue . "<br>";
           
-           $configValues[$counter]['type'] = "item";
+          $configValues[$counter]['type'] = "item";
           $configValues[$counter]['id'] = $key;
           $configValues[$counter]['value'] = $id + $shift;
           
@@ -280,12 +312,12 @@ function extractValues($filename, $contents, $compat, $shift, $debug) #max debug
           
           if ($type == "item")
           {
-            if ($shift > 0)
-            {
-              if ($debug >= 4) echo "[Debug][extractValues]Item $id (+ $shift): " . $lineKey . " => " . $lineValue . "<br>";
-              $configValues[$counter]['value'] = ($id + $shift);
-            }
-            else
+            #if ($shift > 0)
+            #{
+            #  if ($debug >= 4) echo "[Debug][extractValues]Item $id (+ $shift): " . $lineKey . " => " . $lineValue . "<br>";
+            #  $configValues[$counter]['value'] = ($id + $shift);
+            #}
+            #else
             {
               if ($debug >= 4) echo "[Debug][extractValues]Item: " . $lineKey . " => " . $lineValue . "<br>";
               $configValues[$counter]['value'] = $id;
@@ -311,7 +343,6 @@ function extractValues($filename, $contents, $compat, $shift, $debug) #max debug
   if ($debug > 0) echo "<div>[Debug][extractValues]Found $counter id's!</div>";
   if ($debug > 0) echo "</div>";
   return array($configValues, $counter);
-}
 }
 
 function recieveFile($filehandle) //name of file input

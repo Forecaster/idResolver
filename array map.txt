@@ -1,46 +1,44 @@
 The array tracking the extracted files
-$entries
-  [key] -> Int
-    ['path'] -> String
-    ['name'] -> String
+$entries[key] -> Array
+  ['path'] -> String
+  ['name'] -> String
 
 The array containing the configs
-$config
-  [key] -> Int
-    ['path'] -> String
-    ['fullpath'] -> String
-    ['name'] -> String
-    ['contents'] - String
-    ['newContents'] - String
-    ['shifted'] -> Int
-    ['idCounter'] -> Int
-    ['values'] -> Array
-      [key] - Int
-        ['type'] - String
-        ['id'] - String
-        ['value'] - String
+$config[key] -> Array
+  ['path'] -> String
+  ['fullpath'] -> String
+  ['name'] -> String
+  ['contents'] - String
+  ['newContents'] - String
+  ['shifted'] -> Int
+  ['idCounter'] -> Int
+  ['values'][key] -> Array
+    ['type'] - String
+    ['id'] - String
+    ['value'] - Int
 
-$compat
-  [key] -> String
-    ['path'] -> String
-    ['content'] -> String
-    ['ids'] -> String (yes/no)
-    ['ignore'] -> String (yes/no)
-    ['unsupported'] -> String (yes/no)
-    ['preshifted'] -> String
-    ['blockblocks'] -> Array
-      [key] -> Int
-    ['itemblocks'] -> Array
-      [key] -> Int
-    ['blocks'] -> Array
-      [key] -> Int
-    ['items'] -> Array
-      [key] -> Int
-    ['blockranges'] -> Array
-      [key] -> Int
-        ['key'] -> String
-        ['range'] -> Int
-    ['itemranges']
-      [key] -> Int
-        ['key'] -> String
-        ['range'] -> Int
+$compat['key'] -> Array
+  ['path'] -> String
+  ['content'] -> String
+  ['ids'] -> String (yes/no)
+  ['ignore'] -> String (yes/no)
+  ['unsupported'] -> String (yes/no)
+  ['preshifted'] -> String
+  ['blockblocks'][key] -> Int
+  ['itemblocks'][key] -> Int
+  ['blocks'][key] -> Int
+  ['items'][key] -> Int
+  ['blockranges'][key] -> Array
+    ['key'] -> String
+    ['range'] -> Int
+  ['itemranges'][key] -> Array
+    ['key'] -> String
+    ['range'] -> Int
+
+$ranges[key] -> Int or Array aka $used_id_ranges
+  ['start'] -> Int
+  ['end'] -> Int
+  
+$used_ids[key] -> Int
+  ['id'] -> Int
+  ['source'] -> String

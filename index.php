@@ -91,19 +91,11 @@ $shiftValue = 256;
 
 $indent = 0;
 ?>
-<script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js" /></script>
-
-<script type="text/javascript">
-$(document).ready(function(){
-$('input[name="all"],input[name="title"]').bind('click', function(){
-var status = $(this).is(':checked');
-$('input[type="checkbox"]', $(this).parent('div')).attr('checked', status);
-});
-});
-</script>
+<script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js"></script>
+<script language="javascript" src="scripts.js"></script>
 
 <HTML>
-<link rel="stylesheet" type="text/css" href="styles.css" />
+<link rel="stylesheet" type="text/css" href="styles.css"></link>
 
 <head>
 <title>Minecraft ID Resolver</title>
@@ -123,20 +115,22 @@ if (!isset($step) || $step == 'mode')
   step($step);
   
   echo "
-  <div>
-    <form action='' method=post>
+  <div class=center>
+    <form action='#fromMode' method=post>
       <input type=hidden name=step value='upload' />
-      <input class=button2 type=submit value='ID Mode' />
+      <input class=button2 type=submit value='ID Resolver Mode' />
     </form>
   </div>
-  <div>
+  <div class=divider></div>
+  <div class=center>
     <form action='' method=post>
-      <input class=button2 type=submit value='Biome Mode' disabled style='background-color: gray;'/>
+      <input class=button2 type=submit value='Biome Resolver Mode (N/A)' disabled style='background-color: gray;'/>
     </form>
   </div>
-  <div>
+  <div class=divider></div>
+  <div class=center>
     <form action='' method=post>
-      <input class=button2 type=submit value='Settings Mode' disabled style='background-color: gray;'/>
+      <input class=button2 type=submit value='Settings Mode (N/A)' disabled style='background-color: gray;'/>
     </form>
   </div>";
 }
@@ -146,50 +140,47 @@ if (!isset($step) || $step == 'mode')
 $step = $_POST['step'];
 if ($step == 'upload')
 {
-  
   step($step);
   echo "
-  <div style='font-size: 24pt; font-weight: bold;'>Archive all your files in the config folder as a .zip archive.</div>
-  <div style='font-size: 18pt; font-weight: bold;'>Upload below:</div>
-  <br>
-  <form action='' method='post' enctype='multipart/form-data'>
-    <input type=hidden name=step value='overview' />
-    <input type=file name=file style='width: 100%; height: 50px; background-color: lightgray;' /><br>
-    <input class=button type=submit value='Upload' />
-    <input type=text name=debug placeholder='Debug Level' /> Debug level. (0 - 4) Determines amount of debug output where 0 is none. There will still be normal output though.<br>
-  </form>
-  <br>
-  Or<br>
-  <br>
-  Enter key to access previous file (Not implemented yet):<br>
+  <div style='font-size: 24pt; font-weight: bold;'>Archive all your files in the config folder as a <r>[.zip]</r> archive.</div>
+  <div style='font-size: 14pt;'>Other archive types will <r>NOT</r> work.</div>
+  <div class=divider></div>
+  <div>What this does, in brief:</div>
+  <div class=divider></div>
+  <div>The Analysis step (the first after uploading) will scan the uploaded files, extract all the id's it can, tell you how many it found, which files didn't have any, which files where empty etc, it then sifts through all the found id's and will detect conflicts. You may stop here if you only wished to know if there are any conflicts in your configs. If you wish to proceed you may check the boxes by an item to lock it, preventing the next step from interracting with it.</div>
+  <div class=divider></div>
+  <div>The Assigning step will, as the name implies, assign new id's to any unlocked items starting at 600 for blocks and 4096 for items by default. This step has no interractions beyond seeing the results.</div>
+  <div class=divider></div>
+  <div>The Download step builds a new zip archive of your files and offers a direct link to it. You may then download the archive and extract the modified config files over your old ones to apply the new id's.</div>
+  <div class=divider></div>
+  <div style='font-size: 18pt; font-weight: bold;'>Drag & Drop file onto grey area or click to browse:</div>
+  <div class=note>If no file is selected before uploading, instead of erroring it will display sample data generated from static test files.</div>
+  <div>
+    <form action='#fromUpload' method='post' enctype='multipart/form-data'>
+      <input type=hidden name=step value='overview' />
+      <input type=file name=file style='width: 100%; height: 50px; background-color: lightgray;' /><br>
+      <input class=button type=submit value='Upload' />
+      <input type=text name=debug placeholder='Debug Level' /> Debug level. (0 - 4) Determines amount of debug output where 0 is none. There will still be normal output though.<br>
+    </form>
+  </div>
+  <!--<div style='font-size: 14pt; font-weight: bold;'>Or</div>
+  <div>
+  (Not implemented yet) Enter key to access previous file:<br>
   <form action='' method='post'>
     <input type=text name=step placeholder='Key' style='width: 100%;'/>
     <input class=button type=submit value='Submit Key' />
   </form>
-  <br>
-  <span style='font-weight: bold;'>Note that certain mods do not use the forge config format!</span><br>
-  <br>
-  Although not finding any id's in a file will not break anything, the resolver will not be able to change the id's in the file, or take them into account when assigning id's for other files.<br>
-  <br>
-  In forge configs block and item id's are kept within block{} and item{} blocks, these are what the resolver is looking for when extracting id's.<br>
-  <br>
-  Certain mods have other names for the blocks, which means the resolver will not be able to tell that there are id's within without being told so.<br>
-  <br>
-  For example chickenbones wireless redstone mod, it uses several custom blocks with different names that do not indicate whether they contain id's or not.<br>
-  <br>
-  There are also other options mixed in with the id's in these blocks that complicate things further.<br>
-  <br>
-  Thus the wirelessredstone.cfg file is ignored.<br>
-  <br>
-  Also ignored are files with any file name extension other than .cfg or .conf<br>
-  <br>
-  What it also will not do is take into account id's that need to be within a specific range, or have surrounding id's clear. You will have to account for this manually.<br>
-  <br>
-  <span style='font-weight: bold;'>Ignored files:</span><br>
-  ";
-  
-  foreach ($ignore as $value)
-    echo $value . "<br>";
+  </div>-->
+  <div class=divider></div>
+  <div style='font-weight: bold;'>Note that certain mods do not use the forge config format! Although not finding any id's in a file will not break anything, the resolver will not be able to change the id's in the file, or take them into account when assigning id's for other files. In forge configs block and item id's are kept within block{} and item{} blocks, these are what the resolver is looking for when extracting id's.
+  </div>
+  <div class=divider></div>
+  <div>Certain mods have other names for the blocks, which means the resolver will not be able to tell that there are id's within without being told so. For example chickenbones wireless redstone mod, it uses several custom blocks with different names that do not indicate whether they contain id's or not. There are also other options mixed in with the id's in these blocks that complicate things further. Thus the wirelessredstone.cfg file is ignored.
+  </div>
+  <div class=divider></div>
+  <div>Also ignored are files with any file name extension other than .cfg or .conf.</div>
+  <div>What it also will not do is take into account id's that need to be within a specific range, or have surrounding id's clear. You will have to account for this manually.</div>";
+
 }
 }
 
@@ -200,10 +191,18 @@ if ($step == 'overview')
   step($step);
   list($error, $filekey) = recieveFile('file');
   
+  if ($error == -1)
+  {
+    $filekey = "demo";
+    $error = 0;
+  }
+  
   session_start();
   
   if ($error == 0)
   {
+    if ($filekey == "demo") echo "<div><div class='demotitle inline'>[ DEMO MODE ]</div><div class='note inline'>[ Displayed data is generated from demo files. To get actual data please upload a zip archive with your configs. ]</div></div>";
+    
     echo "
     Your key: <div id=key class=key>" . $filekey . "</div><br>
     Copy this key. Should you be unable to download the archive in the final step this can be used to recover it. You should also include this when reporting bugs.<br>
@@ -213,20 +212,30 @@ if ($step == 'overview')
     <br>
     Here you may specify the starting values at which block and item id's will start being assigned.<br>
     These will override the default values. Leave blank to use the defaults.<br>
-    <form action='' method=post>
+    <form action='#fromAnalysis' method=post>
    <input type=text size=40 name=startblock placeholder='Starting block ID (Default: $startblock)' />
    <input type=text size=40 name=startitem placeholder='Starting item ID (Default: $startitem)' /><br>
    <input class=button type='submit' value='Next' />";
     
-    $archivepath = "archives/$filekey.zip";
-    $targetpath = "extracted/$filekey";
     
-    #list($times_read, $configs, $configValues, $names) = readZip($path . $filename, $ignore, 2);
-    
-    if (!extractZip($archivepath, $targetpath))
-      echo "<div class=error>[Error]Something went wrong when trying to extract your archive!</div>";
-    
-    $dirpath = "extracted/$filekey";
+    if ($filekey != "demo")
+    {
+      $archivepath = "archives/$filekey.zip";
+      $targetpath = "extracted/$filekey";
+      
+      #list($times_read, $configs, $configValues, $names) = readZip($path . $filename, $ignore, 2);
+      
+      echo "<div id=messages class=noteBox>";
+      
+      if (!extractZip($archivepath, $targetpath))
+        echo "<div class=error>[Error]Something went wrong when trying to extract your archive!</div>";
+      
+      $dirpath = "extracted/$filekey";
+    }
+    elseif ($filekey == "demo")
+    {
+      $dirpath = "demofiles";
+    }
     
     unset($levels);
     $entries = myReadDir($dirpath, $search, null, null, 0, $debug);
@@ -240,10 +249,20 @@ if ($step == 'overview')
       $config[$entriesKey]['path'] = $entriesValue['path'];
       $config[$entriesKey]['name'] = $entriesValue['name'];
       
-      if (strpos($configValue['path'], "/") == 0)
-        $config[$entriesKey]['fullpath'] = "extracted/$filekey/" . $entriesValue['path'];
-      else
-        $config[$entriesKey]['fullpath'] = "extracted/$filekey" . $entriesValue['path'];
+      if ($filekey != "demo")
+      {
+        if (strpos($configValue['path'], "/") == 0)
+          $config[$entriesKey]['fullpath'] = "extracted/$filekey/" . $entriesValue['path'];
+        else
+          $config[$entriesKey]['fullpath'] = "extracted/$filekey" . $entriesValue['path'];
+      }
+      elseif ($filekey == "demo")
+      {
+        if (strpos($configValue['path'], "/") == 0)
+          $config[$entriesKey]['fullpath'] = "demofiles/" . $entriesValue['path'];
+        else
+          $config[$entriesKey]['fullpath'] = "demofiles" . $entriesValue['path'];
+      }
     }
     
     foreach ($config as $configKey => $configValue)
@@ -268,41 +287,96 @@ if ($step == 'overview')
         
         if ($debug > 0) echo "<div>[Debug][index]Reading file " . $configValue['name'] . ":</div>";
         
-        if (!(strtolower($compat[$configValue['name']]['preshifted']) == 'yes'))
+        if (strtolower($compat[$configValue['name']]['preshifted']) == 'yes')
         {
-          if ($debug > 0) echo "<div>[Debug][index]Shifted " . $configValue['name'] . "</div>";
-          $shift = $shiftValue;
+          if ($debug > 0) echo "<div>[Debug][index]" . $configValue['name'] . " is pre-shifted</div>";
           $config[$configKey]['preshifted'] = 'yes';
         }
         else
         {
           if ($debug > 0) echo "<div>[Debug][index]Ignored shift on " . $configValue['name'] . "</div>";
-          $shift = 0;
           $config[$configKey]['preshifted'] = 'no';
         }
         
-        list($config[$configKey]['values'], $config[$configKey]['idCounter']) = extractValues($config[$configKey]['path'], $config[$configKey]['contents'], $compat, $shift, $debug);
+        list($config[$configKey]['values'], $config[$configKey]['idCounter'], $used_ids) = extractValues($config[$configKey]['path'], $config[$configKey]['contents'], $compat, $debug);
         
         if ($config[$configKey]['idCounter'] == 0)
-          echo "<div class=warning>[Warning]No id's could be found in " . $configValue['path'] . ". Either there are none, or it contains config blocks with non-standard names! Please report to Forecaster!</div>";
+        {
+          echo "<div class=warning>[Warning]No id's could be found in " . $configValue['path'] . ". Either there are none, or it contains config blocks with non-standard names! This file probably need a compatibility file!</div>";
+          $counter_warnings++;
+        }
         elseif ($config[$configKey]['idCounter'] == -1)
+        {
           echo "<div class=note>[Note]" . $config[$configKey]['path'] . " has no id's according to compat file.</div>";
+          $counter_notes++;
+        }
         elseif ($config[$configKey]['idCounter'] == -2)
-          echo "<div class=error>[Warning]" . $config[$configKey]['path'] . " is known to contain id's but is not supported and will be ignored!.</div>";
+        {
+          echo "<div class=error>[Error]" . $config[$configKey]['path'] . " is known to contain id's but is not supported at the moment and will be ignored!.</div>";
+          $counter_errors++;
+        }
         else
+        {
           echo "<div class=highNote>[Note]Found " . $config[$configKey]['idCounter'] . " id's in " . $config[$configKey]['path'] . "</div>";
+          $counter_notes++;
+        }
       }
     }
     
+    echo "</div><script>toggleHidden(document.getElementById('messages'), null);</script>";
     
-    /*foreach ($config as $key => $value)
+    echo "<div class=pnt onClick='toggleHidden(document.getElementById(\"messages\"), null);'>[ ";
+    if ($counter_notes >= 1) echo "$counter_notes notes, ";
+    if ($counter_warnings >= 1) echo "<o>$counter_warnings warnings</o>, ";
+    if ($counter_errors >= 1) echo "<r>$counter_errors errors</r>";
+    echo " ] <div class='note inline'>Click to show/hide</div></div>";
+    
+    foreach ($config as $configValue)
     {
-      echo "File: " . $value['path'] . "<br>";
-      foreach ($value['values'] as $key2 => $value2)
+      foreach ($configValue['values'] as $configValueValue)
       {
-        echo $key2 . " => " . $value2['id'] . "<br>";
+        if(is_numeric($configValueValue['value']))
+          $used_ids[] = array('id' => $configValueValue['value'], 'name' => $configValueValue['id'], 'source' => $configValue['path']);
+          $used_id_ranges[] = $configValueValue['value'];
       }
-    }*/
+    }
+    
+    $ranges = getRanges($used_id_ranges);
+    
+    echo "<div class=used_ids>
+    <div class='inline pnt' onClick='toggleHidden(document.getElementById(\"used_ids\"), null)'> [ Used Ids ]</div>
+    <div class='inline note pnt' onClick='toggleHidden(document.getElementById(\"used_ids\"), null)'> - Click to show</div>
+    <div id=used_ids>";
+    foreach ($ranges as $arrayValue)
+    {
+      if (is_array($arrayValue))
+      {
+        $ids_in_range = $arrayValue['end'] - $arrayValue['start'];
+        $total_ids += $ids_in_range;
+        echo "<div class=option>" . $arrayValue['start'] . " - " . $arrayValue['end'] . " (" . $ids_in_range . ")</div>";
+      }
+      else
+      {
+        $total_ids += 1;
+        echo "<div class=option>" . $arrayValue . "</div>";
+      }
+    }
+    echo "</div>";
+    echo "<div class=pnt onClick='toggleHidden(document.getElementById(\"used_ids\"), null)'>Total: $total_ids</div>";
+    echo "</div><script>toggleHidden(document.getElementById(\"used_ids\"), null)</script>";
+    
+    echo "<div class=divider></div>";
+    
+    foreach ($config as $configKey => $configValue)
+      $total_options += $configValue['idCounter'];
+    
+    echo"<div>A total of <div class='warning inline'>" . count($config) . "</div> files have been scanned and <div class='warning inline'>$total_options</div> configurable id's were found and extracted and are displayed below!</div>";
+    
+    echo "<div class=divider></div>";
+    
+    #myVarDump($used_ids);
+    
+    #echo "<div class=divider></div>";
     
     $_SESSION['debug'] = $debug;
     $_SESSION['config'] = $config;
@@ -314,9 +388,9 @@ if ($step == 'overview')
     $title_counter = 1;
     $value_counter = 1;
     
-    echo "<div id=configs style='border: 1px solid black;'><input type=checkbox name=all id=all /><label for=all> All </label>
-    <input type=hidden name=step value='assigning' />
-    <input type=hidden name=key value='$filekey' />";
+    echo "<div id=configs style='border: 1px solid black;'><input type=checkbox id=all onClick='toggleAll(this)'></input><label for=all> Toggle All</label>
+    <input type=hidden name=step value='assigning'></input>
+    <input type=hidden name=key value='$filekey'></input>";
     foreach ($config as $configKey => $configValue)
     {
       if ($configValue['idCounter'] >= 1)
@@ -324,30 +398,131 @@ if ($step == 'overview')
         $name = $configValue['name'];
         $path = $configValue['path'];
         $values = $configValue['values'];
+        if ($configValue['idCounter'] <= 10) 
+          $optionHeight = (($configValue['idCounter'] +1) * 21);
+        else
+          $optionHeight = (11 * 21);
         
         echo "
-        <div id=" . $name . " style='border: 1px dashed black;'>
-        <div><input type=checkbox name='title_$title_counter' id='title_$title_counter' /><label for='title_$title_counter'>" . $path . "</div>";
+      <div class=divider style='border-color: orange;'></div>
+      <div class='config pnt' onClick='toggleHiddenBlock(this, \"$path\", \"$optionHeight\", null);hideConflicts(\"$name\");'><div class=toggleButton id='$path togglebutton'>+</div><label class=pnt>[" . str_pad($configValue['idCounter'], 3, "0", STR_PAD_LEFT) . " ids] $path </label> </div>
+      <div id='" . $path . "' class='configBox overflowing' style='border: 1px dashed gray; height: " . $optionHeightpx . "px;'>
+        <div>
+          <input type=checkbox id='$name all' class='$name' onClick='toggle(this)'></input><label for='$name all'> Toggle All</label>
+          <input type=checkbox id='$name block' class='$name' onClick='toggleType(this, \"Block\")'></input><label for='$name block'> Toggle Blocks </label>
+          <input type=checkbox id='$name item' class='$name' onClick='toggleType(this, \"Item\")'></input><label for='$name item'> Toggle Items </label>
+        </div>";
+        $counter_conflicts_total = 0;
+        
         foreach ($values as $valuesKey => $valuesValue)
         {
           $id = trim($valuesValue['id']);
           $type = $valuesValue['type'];
           $idvalue = $valuesValue['value'];
+          $nameID = $name . "-" . $id;
+          $nameID = str_replace("\"", "", $nameID);
           
-          if ($configValue['preshifted'] != 'yes' || $valuesValue['type'] == "block")
+          /*
+          if ($type == "block")
+            $checkboxvalue = $id . "=" . $idvalue . "=" . $path;
+          elseif ($type == "item")
+          {
+            if ($valuesValue['preshifted'] == 'yes')
+              $checkboxvalue = $id . "=" . $idvalue . "=" . $path;
+            else
+              $checkboxvalue = $id . "=" . ($idvalue + $shiftValue) . "=" . $path;
+          }*/
+          
+          $checkboxvalue = $id . "=" . $idvalue . "=" . $path;
+          
+          $conflicts = find_conflicting_ids($used_ids, $idvalue);
+          $conflict = false;
+          $counter_conflicts = 0;
+          foreach ($conflicts as $conflictsKey => $conflictsValue)
+          {
+            if ($used_ids[$conflictsValue]['source'] != $path)
+            {
+              $conflict[] = array('source' => $used_ids[$conflictsValue]['source'], 'name' => $used_ids[$conflictsValue]['name']);
+              $counter_conflicts++;
+              $counter_conflicts_total++;
+            }
+          }
+          
+          if ($type == "block")
+          {
             echo "
-          <div class=option>
-            <input type=checkbox name='$id' value='$idvalue' id='box_$value_counter' /><label for='box_$value_counter'>$type - $id=$idvalue (in-game: $idvalue)</label>
-          </div>";
-          else
+          <div id=item class=option>
+            <div class=inline><input type=checkbox name='id_$value_counter' value='" . $checkboxvalue . "' id='" . $name . $value_counter . "' class='" . $name . "Block'></input><label for='" . $name . $value_counter . "'>$type - $id=$idvalue</label></div>";
+            if ($conflict !== false) echo "<div class='inline error lftmrgn'> Conflict with " . $conflict[0]['name'] . " from " . $conflict[0]['source'] . "!</div>";
+            if ($counter_conflicts > 1)
+            {
+              echo "<div class='inline warning lftmrgn pnt' onClick='toggleHidden(document.getElementById(\"$nameID\"), null)'> +" . ($counter_conflicts-1) . " more</div>";
+              echo "<div id='$nameID' class=conflictBox>";
+              foreach ($conflict as $conflictKey => $conflictValue)
+              {
+                if ($conflictKey != 0)
+                  echo "<div><div class='inline error lftmrgn'>Conflict with " . $conflictValue['name'] . " from " . $conflictValue['source'] . "</div></div>";
+              }
+              echo "</div>";
+              #echo "<script>toggleHidden(document.getElementById(\"$name-$id\"))</script>";
+            }
             echo "
-          <div class=option>
-            <input type=checkbox name='$id' value='$idvalue' id='box_$value_counter' /><label for='box_$value_counter'>$type - $id=$idvalue (in-game: " . ($idvalue + $shiftValue) . ")</label>
           </div>";
+          }
+          elseif ($type == "item" && $configValue['preshifted'] == 'yes')
+          {
+            echo "
+          <div id=item class=option>
+            <div class=inline><input type=checkbox name='id_$value_counter' value='" . $checkboxvalue . "' id='" . $name . $value_counter . "' class='" . $name . "Block'></input><label for='" . $name . $value_counter . "'>$type - $id=$idvalue (in-game: $idvalue)</label></div>";
+            if ($conflict !== false) echo "<div class='inline error lftmrgn'> Conflict with " . $conflict[0]['name'] . " from " . $conflict[0]['source'] . "!</div>";
+            if ($counter_conflicts > 1)
+            {
+              echo "<div class='inline warning lftmrgn pnt' onClick='toggleHidden(document.getElementById(\"$nameID\"), null)'> +" . ($counter_conflicts-1) . " more</div>";
+              echo "<div id='$nameID' class=conflictBox>";
+              foreach ($conflict as $conflictKey => $conflictValue)
+              {
+                if ($conflictKey != 0)
+                  echo "<div><div class='inline error lftmrgn'>Conflict with " . $conflictValue['name'] . " from " . $conflictValue['source'] . "</div></div>";
+              }
+              echo "</div>";
+              #echo "<script>toggleHidden(document.getElementById(\"$name-$id\"))</script>";
+            }
+            echo "
+          </div>";
+          }
+          elseif ($type == "item")
+          {
+            echo "
+          <div id=item class=option>
+            <div class=inline><input type=checkbox name='id_$value_counter' value='" . $checkboxvalue . "' id='" . $name . $value_counter . "' class='" . $name . "Item'></input><label for='" . $name . $value_counter . "'>$type - $id=$idvalue (in-game: " . ($idvalue + $shiftValue) . ")</label></div>";
+            if ($conflict !== false) echo "<div class='inline error lftmrgn'> Conflict with " . $conflict[0]['name'] . " from " . $conflict[0]['source'] . "!</div>";
+            if ($counter_conflicts > 1)
+            {
+              echo "<div class='inline warning lftmrgn pnt' onClick='toggleHidden(document.getElementById(\"$nameID\"), null)'> +" . ($counter_conflicts-1) . " more</div>";
+              echo "<div id='$nameID' class=conflictBox>";
+              foreach ($conflict as $conflictKey => $conflictValue)
+              {
+                if ($conflictKey != 0)
+                  echo "<div><div class='inline error lftmrgn'>Conflict with " . $conflictValue['name'] . " from " . $conflictValue['source'] . "</div></div>";
+              }
+              echo "</div>";
+              #echo "<script>toggleHidden(document.getElementById(\"$name-$id\"))</script>";
+            }
+            echo "
+          </div>";
+          }
           
           $value_counter++;
         }
         echo "</div>";
+        if ($counter_conflicts_total == 0)
+          echo "<div class='pnt config' onClick='toggleHiddenBlock(this, \"$path\", \"$optionHeight\")'>No conflicts found!</div>";
+        elseif ($counter_conflicts_total == 1)
+          echo "<div class='pnt warning' onClick='toggleHiddenBlock(this, \"$path\", \"$optionHeight\")'>1 conflict found!</div>";
+        elseif ($counter_conflicts_total >= ($value_counter / 2))
+          echo "<div class='pnt error' onClick='toggleHiddenBlock(this, \"$path\", \"$optionHeight\")'>$counter_conflicts_total conflict found!</div>";
+        else
+          echo "<div class='pnt warning' onClick='toggleHiddenBlock(this, \"$path\", \"$optionHeight\")'>$counter_conflicts_total conflict found!</div>";
         $title_counter++;
       }
     }
@@ -358,7 +533,9 @@ if ($step == 'overview')
     echo "Error " . $error . ": " . $str_error[$error];
   }
   
-  myVarDump($config);
+  echo "<script>toggleConfigs()</script>";
+  
+  #myVarDump($config);
   #myVarDump($levels);
 }
 }
@@ -372,6 +549,7 @@ if ($step == 'assigning')
 
   $debug = $_SESSION['debug'];
   $config = $_SESSION['config'];
+  $filekey = $_SESSION['filekey'];
   
   if ($_POST['startblock'] > 0)
     $startblock = $_POST['startblock'];
@@ -391,22 +569,38 @@ if ($step == 'assigning')
     You may review the changes made below, then proceed to the final step where your download will be avaliable.
   </div>
   <div>
-    <form action='' method=post>
+    <form action='#fromAssigning' method=post>
       <input type=hidden name=step value='download' />
       <input class=button type=submit value=Next />
     </form>
   </div>";
   
   $post_counter = 0;
-  foreach ($_POST as $key => $value)
+  foreach ($_POST as $postKey => $postValue)
   {
-    if (stristr($key, 'I:'))
+    if (strpos($postKey, 'id_') !== false)
     {
+      #echo "<div class=debug>Lockedloop: $postValue</div>";
       #I:"BlockStartingID"=3000
-      $locked[] = $key . "=" . $value;
-      $post_counter++;
+      list($id, $value, $source) = explode("=", $postValue);
+      $locked[] = array('id' => $id, 'value' => $value, 'source' => $source);
     }
+    $post_counter++;
   }
+  
+  echo "<div>Counted $post_counter post entries!</div>";
+  echo "<div style='border: 1px solid black; height: 100px; overflow-y: scroll;overflow-x: none;'>";
+  myVarDump($_POST);
+  echo "</div>";
+  
+  echo "<div>Counted $post_counter post entries!</div>";
+  echo "<div style='border: 1px solid black; height: 100px; overflow-y: scroll;overflow-x: none;'>";
+  myVarDump($locked);
+  echo "</div>";
+  
+  #echo "<div style='border: 1px solid black; height: 100px; overflow-y: scroll;overflow-x: none;'>";
+  #myVarDump($config);
+  #echo "</div>";
   
   #echo "[Debug]Found $post_counter locked items.<br>";
   
@@ -414,163 +608,298 @@ if ($step == 'assigning')
   $newitemidcounter = $startitem;
   
   ### BLOCK ID ASSIGNING ###
-  echo "<br>=====Starting block assign!<br>";
-  foreach ($config as $configKey => $configValue)
+  echo "<div class='title pnt' onClick='toggleHidden(document.getElementById(\"blockassign\"), null)'>[Block Assign]</div>
+  <div id=blockassign class=blockassign>";
+  foreach ($config as $configIndex => $configValue)
   {
     if ($configValue['idCounter'] > 0)
     {
-      echo "<div class=warning>File: " . $configValue['path'] . "</div>";
+      $counter_block_change = 0;
+      $counter_block_conflict = 0;
+      $counter_block_locked = 0;
+      $counter_block_error = 0;
       
-      foreach ($compat[$configValue['name']]['blockranges'] as $compatKey => $compatValue)
+      echo "
+      <div class='titleBar pnt' onClick='toggleHiddenBlock(this, \"block_" . $configValue['path'] . "\", null)'>File: " . $configValue['path'] . "</div>
+      <div id='block_" . $configValue['path'] . "'>";
+      
+      foreach ($compat[$configValue['name']]['blockranges'] as $compatIndex => $compatValue)
       {
         $localCompat[$compatValue['key']] = $compatValue['range'];
       }
       
       foreach ($configValue['values'] as $configValueValue)
       {
+        $targetValue = trim($configValueValue['id'] . "=" . $configValueValue['value']);
         if ($configValueValue['type'] == "block")
         {
-          if ($debug > 0) echo "[Debug][blockAssign]Checking for \"" . ($configValueValue['id'] . "=" . $configValueValue['value']) . "\" in locked array!<br>";
-          if (!str_in_array(($configValueValue['id'] . "=" . $configValueValue['value']), $locked))
+          echo "<div>[blockAssign]Assigning " . $configValueValue['id'] . "</div>";
+          if ($debug > 0) echo "<div class=debug>[Debug][blockAssign]Checking for \"" . $targetValue . "\" in locked array!</div>";
+          if ($debug > 0) echo "<div class=debug>[Debug][blockAssign]thisOptionLocked check: " . thisOptionLocked($configValueValue['id'], $configValueValue['value'], $configValue['path'], $locked) . "</div>";
+          
+          if (!thisOptionLocked($configValueValue['id'], $configValueValue['value'], $configValue['path'], $locked))
           {
             $assigned = false;
+            
             while ($assigned === false)
             {
-              if ($debug > 0) echo "[Debug][blockAssign]Checking if $newblockidcounter is conflicting with vanilla!<br>";
+              if ($debug > 0) echo "<div class=debug>[Debug][blockAssign]Checking if $newblockidcounter is conflicting with vanilla!</div>";
               if (!in_array($newblockidcounter, $reservedVanillaBlocks))
               {
-                $target = $configValueValue['id'] . "=" . $configValueValue['value'];
-                $needle = $configValueValue['id'] . "=" . $newblockidcounter;
-                $config[$configKey]['newContents'] = str_replace($target, $needle, $config[$configKey]['newContents']);
-                echo "Changed <div class=target>$target</div> to <div class=needle>$needle</div> <br>";
-                
-                $currentKey = trim($configValueValue['id']);
-                
-                $assigned = true;
-                
-                // if ($configValue['name'] == "PortalGun.cfg")
-                // {
-                  // echo "<div>Looking for '" . $currentKey . "' in localCompat</div>";
-                  // echo "<div>Key: " . key_in_array($currentKey, $localCompat) . "</div>";
-                // }
-                
-                
-                if (key_in_array($currentKey, $localCompat))
+                if ($debug > 0) echo "<div class=debug>[Debug][blockAssign]Checking if $newblockidcounter is locked!</div>";
+                if ($debug > 0) echo "<div class=debug>[Debug][blockAssign]partial_str_in_array check: " . thisIdLocked($newblockidcounter, $locked) . "</div>";
+                if (!thisIdLocked($newblockidcounter, $locked))
                 {
-                  echo "<div>Increased item id counter by " . ($localCompat[$currentKey] - 1) . "</div>";
-                  $newblockidcounter += ($localCompat[$currentKey] - 1);
+                  $target = $targetValue;
+                  $needle = $configValueValue['id'] . "=" . $newblockidcounter;
+                  
+                  unset($source);
+                  unset($change);
+                  if (isset($configValue['newContents']))
+                    $source = $configValue['newContents'];
+                  else
+                    $source = $configValue['contents'];
+                  
+                  $change = str_replace($target, $needle, $source);
+                  
+                  #echo "
+                  #  <div style='border: 1px solid orange;'>$source</div>
+                  #  <div style='border: 1px solid red;'>$change</div>";
+                  
+                  if ($source == $change)
+                  {
+                    echo "<div class=error>[blockAssign]Failed to change '$target' to '$needle'</div>";
+                    $counter_block_error++;
+                  }
+                  elseif ($source != $change)
+                  {
+                    echo "<div>Changed <div class=target>$target</div> to <div class=needle>$needle</div></div>";
+                    $counter_block_change++;
+                  }
+                  else
+                  {
+                    echo "<div class=error>[blockAssign]Something odd happened here... Please report this!</div>";
+                  }
+                    
+                  $configValue['newContents'] = $change;
+                  $config[$configIndex]['newContents'] = $change;
+                  
+                  $currentKey = trim($configValueValue['id']);
+                  
+                  $assigned = true;
+                  
+                  // if ($configValue['name'] == "PortalGun.cfg")
+                  // {
+                    // echo "<div>Looking for '" . $currentKey . "' in localCompat</div>";
+                    // echo "<div>Key: " . key_in_array($currentKey, $localCompat) . "</div>";
+                  // }
+                  
+                  
+                  if (key_in_array($currentKey, $localCompat))
+                  {
+                    if ($debug > 0) echo "<div>[Debug]Increased item id counter by " . ($localCompat[$currentKey] - 1) . "</div>";
+                    $newblockidcounter += ($localCompat[$currentKey] - 1);
+                  }
+                  else
+                    $newblockidcounter++;
                 }
                 else
+                {
+                  echo "<div class=warning>Ignored locked id $newblockidcounter.</div>";
                   $newblockidcounter++;
+                }
               }
               else
               {
-                if ($debug > 0) echo "[Debug][blockAssign]Ignored id conflicting with vanilla.<br>";
+                echo "<div class=warning>Ignored id $newblockidcounter, conflicting with vanilla.</div>";
                 $newblockidcounter++;
+                $counter_block_conflict++;
               }
             }
           }
           else
-            if ($debug > 0) echo "[Debug][blockAssign]Ignored locked option.<br>";
+          {
+            echo "<div class=note>Ignored locked option \"$targetValue\"</div>";
+            $counter_block_locked++;
+          }
         }
         #else
           #echo "Ignored non-block.<br>";
       }
+      echo "</div>
+      <div class='subBar pnt' onClick='toggleHiddenBlock(this, \"block_" . $configValue['path'] . "\", null)'>";
+      if ($counter_block_change > 1) echo "$counter_block_change changes"; elseif ($counter_block_change == 1) echo "1 change";
+      if ($counter_block_change > 0 && ($counter_block_conflict > 0 || $counter_block_locked > 0 || $counter_block_error > 0)) echo ", ";
+      if ($counter_block_conflict > 1) echo "<div class=warning>$counter_block_conflict conflicts</div>"; elseif ($counter_block_conflict == 1) echo "<div class=warning>1 conflict</div>";
+      if ($counter_block_conflict > 0 && ($counter_block_locked > 0 || $counter_block_error > 0)) echo ", ";
+      if ($counter_block_locked > 0) echo "<div class=note>$counter_block_locked locked</div>";
+      if ($counter_block_conflict > 0 && $counter_block_error > 0) echo ", ";
+      if ($counter_block_error > 1) echo "<div class=error>$counter_block_error errors</div>"; elseif ($counter_block_error == 1) echo "<div class=error>1 error</div>";
+      echo "</div><script>toggleHidden(document.getElementById('block_" . $configValue['path'] . "'), null)</script>
+      <div style='height: 5px;'></div>";
     }
   }
+  echo "</div>";
   
   ### ITEM ID ASSIGNING ###
-  echo "<br>=====Starting item assign!<br>";
-  foreach ($config as $configKey => $configValue)
+  echo "<div class='title pnt' onClick='toggleHidden(document.getElementById(\"itemassign\"), null)'>[Item Assign]</div>
+  <div id=itemassign class=blockassign>";
+  foreach ($config as $configIndex => $configValue)
   {
     if ($configValue['idCounter'] > 0)
     {
-      echo "<div class=warning>File: " . $configValue['path'] . "</div>";
+      echo "
+      <div class='titleBar pnt' onClick='toggleHiddenBlock(this, \"item_" . $configValue['path'] . "\", null)'>File: " . $configValue['path'] . "</div>
+      <div id='item_" . $configValue['path'] . "'>";
       
-      foreach ($compat[$configValue['name']]['itemranges'] as $compatKey => $compatValue)
+      foreach ($compat[$configValue['name']]['itemranges'] as $compatIndex => $compatValue)
       {
         $localCompat[$compatValue['key']] = $compatValue['range'];
       }
       
+      $counter_item_change = 0;
+      $counter_item_conflict = 0;
+      $counter_item_locked = 0;
+      $counter_item_error = 0;
+      
       foreach ($configValue['values'] as $configValueValue)
       {
+        $targetValue = trim($configValueValue['id'] . "=" . $configValueValue['value']);
         if ($configValueValue['type'] == "item")
         {
-          if ($debug > 0) echo "[Debug][itemAssign]Checking for \"" . ($configValueValue['id'] . "=" . $configValueValue['value']) . "\" in locked array!<br>";
-          if (!in_array($configValueValue['id'] . "=" . $configValueValue['value'], $locked))
+          echo "<div>[itemAssign]Assigning " . $configValueValue['id'] . "</div>";
+          if ($debug > 0) echo "[Debug][itemAssign]Checking for \"" . $targetValue . "\" in locked array!<br>";
+          
+          if (!thisOptionLocked($configValueValue['id'], $configValueValue['value'], $configValue['path'], $locked))
           {
             $assigned = false;
+            
             while ($assigned === false)
             {
               if ($debug > 0) echo "[Debug][itemAssign]Checking if $newitemidcounter is conflicting with vanilla!<br>";
               if (!in_array($newitemidcounter, $reservedVanillaItems))
               {
-                if ($debug > 0) echo "<div>[Debug][itemAssign]Shift value: " . $configValue['preshifted'] . "</div>";
-                
-                //TARGET
-                $target = $configValueValue['id'] . "=" . $configValueValue['value'];
-                
-                //NEEDLE
-                if ($configValue['preshifted'] == 'yes')
-                  $needle = $configValueValue['id'] . "=" . ($newitemidcounter - $shiftValue);
-                else
-                  $needle = $configValueValue['id'] . "=" . $newitemidcounter;
-                  
-                $source = $config[$configKey]['newContents'];
-                
-                $change = str_replace($target, $needle, $source);
-                
-                if ($source == $change)
-                  echo "<div class=error>[Debug][itemAssign]Failed to change '$target' to '$needle'</div>";
-                elseif ($source != $change)
-                  echo "<div>[Debug][itemAssign]Changed '<div class=target>$target</div>' to '<div class=needle>$needle</div>'</div>";
-                else
-                  echo "<div>[Debug][itemAssign]Something odd happened here...</div>";
-                
-                #echo "<div style='border: 1px solid red;'>[" . nl2br($source) . "]</div>";
-                
-                $currentKey = trim($configValueValue['id']);
-                
-                $config[$configKey]['newContents'] = $change;
-                
-                $assigned = true;
-                // if ($configValue['name'] == "PortalGun.cfg")
-                // {
-                  // echo "<div>Looking for '" . $currentKey . "' in localCompat</div>";
-                  // echo "<div>Key: " . key_in_array($currentKey, $localCompat) . "</div>";
-                // }
-                
-                #myVarDump($localCompat);
-                
-                
-                if (key_in_array($currentKey, $localCompat))
+                if ($debug > 0) echo "<div class=debug>[Debug][itemAssign]Checking if $newitemidcounter is locked!</div>";
+                if ($debug > 0) echo "<div class=debug>[Debug][itemAssign]Check: " . thisIdLocked($newitemidcounter, $locked) . "</div>";
+                if (!thisIdLocked(($newitemidcounter - $shiftValue), $locked))
                 {
-                  echo "<div>Increased item id counter by " . ($localCompat[$currentKey] - 1) . "</div>";
-                  $newitemidcounter += ($localCompat[$currentKey] - 1);
+                  if ($debug > 0) echo "<div>[Debug][itemAssign]Shift value: " . $configValue['preshifted'] . "</div>";
+                  
+                  //TARGET
+                  $target = $targetValue;
+                  
+                  //NEEDLE
+                  if ($configValue['preshifted'] == 'yes')
+                    $newitemid = $newitemidcounter;
+                  else
+                    $newitemid = $newitemidcounter - $shiftValue;
+                  
+                  $needle = $configValueValue['id'] . "=" . $newitemid;
+                  
+                  if (isset($configValue['newContents']))
+                    $source = $configValue['newContents'];
+                  else
+                    $source = $configValue['contents'];
+                  
+                  unset($change);
+                  $change = str_replace($target, $needle, $source);
+                  
+                  #echo "
+                  #  <div style='border: 1px solid orange;'>$source</div>
+                  #  <div style='border: 1px solid red;'>$change</div>";
+                  
+                  if ($source == $change)
+                  {
+                    echo "<div class=error>[itemAssign]Failed to change '$target' to '$needle'</div>";
+                    $counter_item_error++;
+                  }
+                  elseif ($source != $change)
+                  {
+                    if ($configValue['preshifted'] == 'yes')
+                    {
+                      echo "<div>Changed '<div class=target>$target</div>' to '<div class=needle>$needle</div>' (in-game: $newitemid) (Pre-shifted)</div>";
+                      $counter_item_change++;
+                    }
+                    else
+                    {
+                      echo "<div>Changed '<div class=target>$target</div>' to '<div class=needle>$needle</div>' (in-game: " . ($newitemid + $shiftValue) . ")</div>";
+                      $counter_item_change++;
+                    }
+                  }
+                  else
+                  {
+                    echo "<div class=error>[itemAssign]Something odd happened here... Please report this!</div>";
+                    $counter_item_error++;
+                  }
+                  
+                  #echo "<div style='border: 1px solid red;'>[" . nl2br($source) . "]</div>";
+                  
+                  $currentKey = trim($configValueValue['id']);
+                  
+                  $configValue['newContents'] = $change;
+                  $config[$configIndex]['newContents'] = $change;
+                  
+                  $assigned = true;
+                  // if ($configValue['name'] == "PortalGun.cfg")
+                  // {
+                    // echo "<div>Looking for '" . $currentKey . "' in localCompat</div>";
+                    // echo "<div>Key: " . key_in_array($currentKey, $localCompat) . "</div>";
+                  // }
+                  
+                  #myVarDump($localCompat);
+                  
+                  
+                  if (key_in_array($currentKey, $localCompat))
+                  {
+                    if ($debug > 0) echo "<div>[Debug][itemAssign]Increased item id counter by " . ($localCompat[$currentKey] - 1) . "</div>";
+                    $newitemidcounter += ($localCompat[$currentKey] - 1);
+                  }
+                  else
+                    $newitemidcounter++;
                 }
                 else
+                {
+                  echo "<div class=warning>Ignored locked id $newitemidcounter.</div>";
                   $newitemidcounter++;
+                }
               }
               else
               {
-                if ($debug > 0) echo "[Debug][itemAssign]Ignored id conflicting with vanilla.<br>";
+                echo "<div class=warning>Ignored id conflicting with vanilla.</div>";
                 $newitemidcounter++;
+                $counter_item_conflict++;
               }
             }
           }
           else
-            echo "Ignored locked option.<br>";
+          {
+            echo "<div class=note>Ignored locked option. \"$targetValue\"</div>";
+            $counter_item_locked++;
+          }
         }
         #else
           #echo "Ignored non-item.<br>";
       }
+      echo "</div>
+      <div class='subBar pnt' onClick='toggleHiddenitem(this, \"item_" . $configValue['path'] . "\", null)'>";
+      if ($counter_item_change > 1) echo "$counter_item_change changes"; elseif ($counter_item_change == 1) echo "1 change";
+      if ($counter_item_change > 0 && ($counter_item_conflict > 0 || $counter_item_locked > 0 || $counter_item_error > 0)) echo ", ";
+      if ($counter_item_conflict > 1) echo "<div class=warning>$counter_item_conflict conflicts</div>"; elseif ($counter_item_conflict == 1) echo "<div class=warning>1 conflict</div>";
+      if ($counter_item_conflict > 0 && ($counter_item_locked > 0 || $counter_item_error > 0)) echo ", ";
+      if ($counter_item_locked > 0) echo "<div class=note>$counter_item_locked locked</div>";
+      if ($counter_item_conflict > 0 && $counter_item_error > 0) echo ", ";
+      if ($counter_item_error > 1) echo "<div class=error>$counter_item_error errors</div>"; elseif ($counter_item_error == 1) echo "<div class=error>1 error</div>";
+      echo "</div><script>toggleHidden(document.getElementById('item_" . $configValue['path'] . "'), null)</script>
+      <div style='height: 5px;'></div>";
     }
   }
+  echo "</div>";
   
-  myVarDump($config);
+  #myVarDump($config);
 
   $_SESSION['config'] = $config;
   $_SESSION['debug'] = $debug;
+  $_SESSION['filekey'] = $filekey;
   
   /*echo "New configs:<br>";
   foreach ($config as $key => $value)
@@ -593,49 +922,56 @@ if ($step == 'download')
   step($step);
   echo "<div id=key class=key>" . $filekey . "</div>";
   
-  foreach ($config as $configKey => $configValue)
+  if ($filekey != "demo")
   {
-    $filepath = $configValue['fullpath'];
-    if ($debug > 0) echo "<div>[Debug]Working in '" . $configValue['fullpath'] . "'</div>";
+    foreach ($config as $configKey => $configValue)
+    {
+      $filepath = $configValue['fullpath'];
+      if ($debug > 0) echo "<div>[Debug]Working in '" . $configValue['fullpath'] . "'</div>";
+      
+      if (writeToFile($configValue['newContents'], $filepath))
+        if ($debug >= 1) echo "<div>[Debug]Success on " . $configValue['path'] . "!</div>";
+      else
+        if ($debug >= 1) echo "<div class=error>[Debug]Fail on " . $configValue['path'] . "!</div>";
+    }
     
-    if (writeToFile($configValue['newContents'], $filepath))
-      if ($debug >= 1) echo "<div>[Debug]Success on " . $configValue['path'] . "!</div>";
+    $targetpath = "repacked/$filekey.zip";
+    $result = addFiles($filekey, $config, $targetpath, $debug);
+    
+    rrmdir("extracted/$filekey");
+    unlink("archives/$filekey" . ".zip");
+    
+    $dirpath = "repacked/";
+    
+    $searchfor[] = ".zip";
+    
+    $archives = myReadDir($dirpath, $searchfor, null, null, 0);
+    
+    foreach ($archives as $archivesValue)
+    {
+      $name = "repacked/" . $archivesValue['name'];
+      $datetime = filemtime($name);
+      if ($datetime !== false)
+        if (($datetime + 86400) < time())
+        {
+          unlink($name);
+          if ($debug > 0) echo "<div>[Debug]Deleted $name.</div>";
+        }
+    }
+    
+    if (!$result)
+      echo "<div class=error>Error while attempting to archive! Please retry!</div>";
     else
-      if ($debug >= 1) echo "<div class=error>[Debug]Fail on " . $configValue['path'] . "!</div>";
+      echo "<div>Archiving succeeded! You will find your file here: <a href='$targetpath'>[DOWNLOAD]</a><br>
+      <br>
+      Download the file into your config directory (You should make a backup of it first) then right click it and \"Extract here\" (assuming you are using WinRAR) overwrite everything.<br>
+      <br>
+      Should you need to redownload the file later it will remain for 24h. Use your key in step one to gain access to it, or give access to someone else.</div>";
   }
-  
-  $targetpath = "repacked/$filekey.zip";
-  $result = addFiles($filekey, $config, $targetpath, $debug);
-  
-  rrmdir("extracted/$filekey");
-  unlink("archives/$filekey" . ".zip");
-  
-  $dirpath = "repacked/";
-  
-  $searchfor[] = ".zip";
-  
-  $archives = myReadDir($dirpath, $searchfor, null, null, 0);
-  
-  foreach ($archives as $archivesValue)
+  elseif ($filekey == "demo")
   {
-    $name = "repacked/" . $archivesValue['name'];
-    $datetime = filemtime($name);
-    if ($datetime !== false)
-      if (($datetime + 86400) < time())
-      {
-        unlink($name);
-        if ($debug > 0) echo "<div>[Debug]Deleted $name.</div>";
-      }
+    echo "<div>No download is provided because no file was uploaded. The data that have been displayed has come from demo files. To get a download please start over and upload a zip archive with configs.</div>";
   }
-  
-  if (!$result)
-    echo "<div class=error>Error while attempting to archive! Please retry!</div>";
-  else
-    echo "<div>Archiving succeeded! You will find your file here: <a href='$targetpath'>[DOWNLOAD]</a><br>
-    <br>
-    Download the file into your config directory (You should make a backup of it first) then right click it and \"Extract here\" (assuming you are using WinRAR) overwrite everything.<br>
-    <br>
-    Should you need to redownload the file later it will remain for 24h. Use your key in step one to gain access to it, or give access to someone else.</div>";
   
   session_write_close();
 }
@@ -643,3 +979,21 @@ if ($step == 'download')
 
 ?>
 </HTML>
+
+<!-- Start of StatCounter Code for Default Guide -->
+<script type="text/javascript">
+var sc_project=9503528; 
+var sc_invisible=1; 
+var sc_security="89632002"; 
+var scJsHost = (("https:" == document.location.protocol) ?
+"https://secure." : "http://www.");
+document.write("<sc"+"ript type='text/javascript' src='" +
+scJsHost+
+"statcounter.com/counter/counter.js'></"+"script>");
+</script>
+<noscript><div class="statcounter"><a title="hit counter"
+href="http://statcounter.com/" target="_blank"><img
+class="statcounter"
+src="http://c.statcounter.com/9503528/0/89632002/1/"
+alt="hit counter"></a></div></noscript>
+<!-- End of StatCounter Code for Default Guide -->

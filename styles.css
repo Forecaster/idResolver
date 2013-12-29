@@ -1,3 +1,8 @@
+div.debug
+{
+  background-color: #FF42FC;
+}
+
 div.key
 {
   margin-left: 5px;
@@ -7,6 +12,27 @@ div.key
   display: inline-block;
 }
 
+div.noteBox
+{
+  border: 2px dotted orange;
+  background: lightgray;
+}
+
+div.configBox
+{
+  background-color: rgb(205,205,205);
+}
+
+div.blockassign
+{
+  border-left: 5px solid orange;
+}
+
+div.used_ids
+{
+  border: 1px dashed gray;
+}
+
 div.option:nth-child(2n)
 {
   width: 100%;
@@ -14,6 +40,18 @@ div.option:nth-child(2n)
 }
 
 div.option:nth-child(2n+1)
+{
+  width: 100%;
+  background-color: rgb(205,205,205);
+}
+
+div.config:nth-child(1n)
+{
+  width: 100%;
+  background-color: rgb(245,245,245);
+}
+
+div.config:nth-child(1n+1)
 {
   width: 100%;
   background-color: rgb(205,205,205);
@@ -58,9 +96,55 @@ div.note
   color: gray;
 }
 
+div.titleBar
+{
+  background-color: rgba(0, 0, 0, .5);
+}
+
+div.subBar
+{
+  background-color: rgba(0, 0, 0, .4);
+}
+
 div.highNote
 {
   color: black;
+}
+
+div.inline
+{
+  display: inline-block;
+}
+
+div.pnt
+{
+  cursor: pointer;
+}
+
+div.center
+{
+  text-align: center;
+}
+
+div.overflowing
+{
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+div.divider
+{
+  display: block;
+  visibility: visible;
+  height: 0px;
+  border: 1px solid lightgray;
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+div.lftmrgn
+{
+  margin-left: 10px;
 }
 
 TD.step
@@ -72,6 +156,24 @@ TD.step
 r
 {
   color: red;
+}
+
+o
+{
+  color: orange;
+}
+
+.title
+{
+  font-size: 18pt;
+  font-weight: bold;
+}
+
+.demotitle
+{
+  color: red;
+  font-size: 18pt;
+  font-weight: bold;
 }
 
 .button
@@ -108,4 +210,13 @@ r
   border-radius: 8px;
   border-color: green;
   border-width: 2px;
+}
+
+.toggleButton
+{
+  background-color: lightgray;
+  width: 20px;
+  height: 20px;
+  text-align: center;
+  display: inline-block;
 }

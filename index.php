@@ -165,7 +165,7 @@ if ($step == 'upload')
   <div class=note>If no file is selected before uploading, instead of erroring it will display sample data generated from static test files.</div>
   <div>
     <form action='#fromUpload' method='post' enctype='multipart/form-data'>
-      <input type=hidden name=step value='overview' />
+      <input type=hidden name=step value='analysis' />
       <input type=file name=file style='width: 100%; height: 50px; background-color: lightgray;' /><br>
       <input class=button type=submit value='Upload' />
       <input type=text name=debug placeholder='Debug Level' /> Debug level. (0 - 4) Determines amount of debug output where 0 is none. There will still be normal output though.<br>
@@ -194,13 +194,13 @@ if ($step == 'upload')
 
 {
 $step = $_POST['step'];
-if ($step == 'overview')
+if ($step == 'analysis')
 {
   step($step);
   
   echo "
   <head>
-    <title>Minecraft ID Resolver - Overview Step</title>
+    <title>Minecraft ID Resolver - Analysis Step</title>
   </head>";
   
   list($error, $filekey) = recieveFile('file');

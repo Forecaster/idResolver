@@ -10,8 +10,8 @@ function step($currentstep)
   $step['compat']['name'] = "STEP: Compatability";
   $step['compat']['info'] = "Select compatability options for files";
   
-  $step['overview']['name'] = "STEP: Analysis";
-  $step['overview']['info'] = "Lock ids & change starting id's";
+  $step['analysis']['name'] = "STEP: Analysis";
+  $step['analysis']['info'] = "Lock ids & change starting id's";
   
   $step['assigning']['name'] = "STEP: Assigning";
   $step['assigning']['info'] = "Observe changes";
@@ -774,17 +774,17 @@ function thisOptionLocked($option, $id, $source, $lockedArray)
 
 function thisIdLocked($id, $locked)
 {
-  echo "<div class=debug>[thisIdLocked]Checking for $id</div>";
+  #echo "<div class=debug>[thisIdLocked]Checking for $id</div>";
   foreach ($locked as $lockedKey => $lockedValue)
   {
     if ($lockedValue['value'] == $id)
     {
-      echo "<div class=debug>[thisIdLocked]Match!</div>";
+      #echo "<div class=debug>[thisIdLocked]Match!</div>";
       return true;
     }
   }
   
-  echo "<div class=debug>No matches found.</div>";
+  #echo "<div class=debug>No matches found.</div>";
   return false;
 }
 ?>

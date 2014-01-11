@@ -1,3 +1,1 @@
-- Prevent empty files from triggering id warning
-- Prevent id-less files from appearing in overview
 - Add range lock to compat system

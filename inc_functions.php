@@ -7,6 +7,9 @@ function step($currentstep)
   $step['upload']['name'] = "STEP: Upload";
   $step['upload']['info'] = "Upload a zip archive";
   
+  $step['compat']['name'] = "STEP: Compatability";
+  $step['compat']['info'] = "Select compatability options for files";
+  
   $step['overview']['name'] = "STEP: Analysis";
   $step['overview']['info'] = "Lock ids & change starting id's";
   
@@ -351,16 +354,23 @@ function extractValues($filename, $contents, $compat, $debug) #max debug 4
     }
   }
   elseif ($compat[$compatName]['ids'] == 'no')
+  {
     $counter = -1;
+  }
   elseif ($compat[$compatName]['unsupported'] == 'yes')
+  {
     $counter = -2;
+  }
   
   if ($debug > 0) echo "<div class=debug>[extractValues]Found $counter id's!</div>";
+  
   return array($configValues, $counter);
+  
 }
 
 function recieveFile($filehandle) //name of file input
 {
+  global $fileSizeLimit;
   if (strlen($_FILES[$filehandle]['name']) < 1)
   {
     return array(-1, null); /* No file */
@@ -375,7 +385,7 @@ function recieveFile($filehandle) //name of file input
     ##File handling:
     if (stristr($_FILES[$filehandle]['name'], '.zip'))
     {
-      if ($_FILES[$filehandle]['size'] < 1048576)
+      if ($_FILES[$filehandle]['size'] < $fileSizeLimit)
       {
         if ($_FILES[$filehandle]['error'] == 0)
         {

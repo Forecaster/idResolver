@@ -1,5 +1,6 @@
 <?php
 require_once "inc_functions.php";
+$fileSizeLimit = 2097152;
 
 { ### ERRORS
 $str_error[1] = "Invalid file type. Make sure your archive is in the .zip format.";
@@ -97,10 +98,6 @@ $indent = 0;
 <HTML>
 <link rel="stylesheet" type="text/css" href="styles.css"></link>
 
-<head>
-<title>Minecraft ID Resolver</title>
-</head>
-
 <body>
 
 <?php
@@ -113,6 +110,11 @@ if (!isset($step) || $step == 'mode')
     $step = 'mode';
 
   step($step);
+  
+  echo "
+  <head>
+    <title>Minecraft ID Resolver - Mode Step</title>
+  </head>";
   
   echo "
   <div class=center>
@@ -141,6 +143,12 @@ $step = $_POST['step'];
 if ($step == 'upload')
 {
   step($step);
+  
+  echo "
+  <head>
+    <title>Minecraft ID Resolver - Upload Step</title>
+  </head>";
+  
   echo "
   <div style='font-size: 24pt; font-weight: bold;'>Archive all your files in the config folder as a <r>[.zip]</r> archive.</div>
   <div style='font-size: 14pt;'>Other archive types will <r>NOT</r> work.</div>
@@ -189,6 +197,12 @@ $step = $_POST['step'];
 if ($step == 'overview')
 {
   step($step);
+  
+  echo "
+  <head>
+    <title>Minecraft ID Resolver - Overview Step</title>
+  </head>";
+  
   list($error, $filekey) = recieveFile('file');
   
   if ($error == -1)
@@ -562,6 +576,12 @@ if ($step == 'assigning')
     $startitem = $_SESSION['startitem'];
   
   step($step);
+  
+  echo "
+  <head>
+    <title>Minecraft ID Resolver - Assign Step</title>
+  </head>";
+  
   echo "<div id=key class=key>Key: " . $_SESSION['filekey'] . "</div><br><br>";
   
   echo "
@@ -920,6 +940,12 @@ if ($step == 'download')
   
   echo $debug . "<br>";
   step($step);
+  
+  echo "
+  <head>
+    <title>Minecraft ID Resolver - Download Step</title>
+  </head>";
+  
   echo "<div id=key class=key>" . $filekey . "</div>";
   
   if ($filekey != "demo")

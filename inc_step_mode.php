@@ -3,29 +3,20 @@
     $step = 'mode';
 
   step($step);
-  
-  echo "
-  <head>
-    <title>Minecraft ID Resolver - Mode Step</title>
-  </head>";
-  
-  echo "
-  <div class=center>
-    <form action='#fromMode' method=post>
-      <input type=hidden name=step value='upload' />
-      <input class=button2 type=submit value='ID Resolver Mode' />
-    </form>
-  </div>
-  <div class=divider></div>
-  <div class=center>
-    <form action='' method=post>
-      <input class=button2 type=submit value='Biome Resolver Mode (N/A)' disabled style='background-color: gray;'/>
-    </form>
-  </div>
-  <div class=divider></div>
-  <div class=center>
-    <form action='' method=post>
-      <input class=button2 type=submit value='Settings Mode (N/A)' disabled style='background-color: gray;'/>
-    </form>
-  </div>";
 ?>
+
+
+
+
+    <div class="row">
+        <div class="col-md-12">
+            <form action='#fromMode' method=post>
+                <input type=hidden name=step value='upload' />
+                <div class="btn-group">
+                    <button type="submit" class="btn btn-success btn-lg">ID Resolver Mode</button>
+                    <button type="submit" class="btn btn-success btn-lg" disabled>Biome Resolver Mode (soon)</button>
+                    <button type="submit" class="btn btn-success btn-lg" disabled>Settings Mode (soon)</button>
+                </div>
+            </form>
+        </div>
+    </div>

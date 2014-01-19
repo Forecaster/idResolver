@@ -1,37 +1,40 @@
 <?php
 function step($currentstep)
 {
-  $step['mode']['name'] = "STEP: Mode";
-  $step['mode']['info'] = "Select mode";
+  $step['mode']['name'] = "Mode";
+  $step['mode']['info'] = "Resolver mode gets selected";
   
-  $step['upload']['name'] = "STEP: Upload";
-  $step['upload']['info'] = "Upload a zip archive";
+  $step['upload']['name'] = "Upload";
+  $step['upload']['info'] = "Zip archieve gets uploaded";
   
-  $step['compat']['name'] = "STEP: Compatability";
-  $step['compat']['info'] = "Select compatability options for files";
+  $step['compat']['name'] = "Compatability";
+  $step['compat']['info'] = "Compatibility opptions will be selected";
   
-  $step['analysis']['name'] = "STEP: Analysis";
+  $step['analysis']['name'] = "Analysis";
   $step['analysis']['info'] = "Lock ids & change starting id's";
   
-  $step['assigning']['name'] = "STEP: Assigning";
-  $step['assigning']['info'] = "Observe changes";
+  $step['assigning']['name'] = "Assigning";
+  $step['assigning']['info'] = "Changes to be observed";
   
-  $step['download']['name'] = "STEP: Download";
-  $step['download']['info'] = "Download";
+  $step['download']['name'] = "Download";
+  $step['download']['info'] = "Download of the finished configs";
   
-  echo "<div class=center><Table style='border: 1px solid gray;margin-left: auto; margin-right: auto;'>";
+  $passed = true;
+  
+  echo "<p>Progress:</p><ol class='breadcrumb'>";
   foreach ($step as $key => $value)
   {
-    if ($key == $currentstep) $class = "step"; else $class = null;
+    if ($passed) $class = "text-success"; else $class = null;
+    if ($key == $currentstep)
+    {
+        $class = "text-primary";
+        $passed = false;
+        }
     
     echo "
-    <TR>
-      <TD class=$class>" . $value['name'] . "</TD>
-      <TD class=$class> | In this step you may:</TD>
-      <TD class=$class>" . $value['info'] . "</TD>
-    </TR>";
+    <li class='$class'>" . $value['name'] . "</li>";
   }
-  echo "</Table></div>";
+  echo "</ol><p>Happening in this step: ".$step[$currentstep]['info']."<hr>";
 }
 
 function myVarDump($array)

@@ -91,19 +91,40 @@ $maxItem = 31999;
 $shiftValue = 256;
 
 $indent = 0;
+
+$step = $_POST['step'];
+
+if (!isset($step))
+    $step='mode';
+
 ?>
-<script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js"></script>
-<script language="javascript" src="scripts.js"></script>
 
 <HTML>
+
+<head>
+
 <link rel="stylesheet" type="text/css" href="styles.css"></link>
+<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
+
+<script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js"></script>
+<script language="javascript" src="scripts.js"></script>
+<script src="//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
+
+<title>Minecraft ID Resolver - <?php echo $step; ?> Step</title>
+
+</head>
 
 <body>
+<div class="container">
+<div class="row">
+<div class="col-md-12">
+<h1>Minecraft ID Resolver<small>&nbsp;helping you since 2013</small></h1>
+</div>
+</div>
 
 <?php
 
-$step = $_POST['step'];
-if (!isset($step) || $step == 'mode')
+if ($step == 'mode')
   include("inc_step_mode.php");
 
 if ($step == 'upload')
@@ -121,7 +142,7 @@ if ($step == 'assigning')
 if ($step == 'download')
   include("inc_step_download.php");
 ?>
-</HTML>
+
 
 <!-- Start of StatCounter Code for Default Guide -->
 <script type="text/javascript">
@@ -140,3 +161,6 @@ class="statcounter"
 src="http://c.statcounter.com/9503528/0/89632002/1/"
 alt="hit counter"></a></div></noscript>
 <!-- End of StatCounter Code for Default Guide -->
+
+</div>
+</HTML>

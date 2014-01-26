@@ -1,5 +1,6 @@
 <?php
 require_once "inc_functions.php";
+require_once "inc_connect.php";
 $fileSizeLimit = 2097152;
 
 { ### ERRORS
@@ -10,19 +11,13 @@ $str_error[4] = "File with same name already exists.";
 $str_error[5] = "Failed to move file.";
 }
 
-{ ### GET FORM DATA
 @$step = $_POST['step'];
-
-if (isset($_POST['debug']))
-  @$debug = $_POST['debug'];
-else
-  @$debug = 0;
-}
 
 $search[] = ".cfg";
 $search[] = ".conf";
 $search[] = ".txt";
 
+/*
 { ### READ COMPAT FILES
 $compatEntries = myReadDir('compat/', $search, null, null, 0, ($debug -4));
 
@@ -61,20 +56,25 @@ foreach ($compat as $compatKey => $compatValue)
   }
   elseif (is_string($return))
   {
+    $noids = 0;
+    $ignore = 0;
+    $unsupp = 0;
     if ($return == "noids")
-      $compat[$compatKey]['ids'] = 'no';
+      $noids = 1;
     elseif ($return == "ignore")
-      $compat[$compatKey]['ignore'] = 'yes';
+      $ignore = 1;
    elseif ($return == "unsupported")
-      $compat[$compatKey]['unsupported'] = 'yes';
+      $unsupp = 1;
+    
   }
 }
 }
+*/
 
 #myVarDump($compat);
 
-$defaultBlockblocks = array('block {', 'blocks {');
-$defaultItemblocks = array('item {', 'items {');
+$defaultBlockCategories = array('block {', 'blocks {', 'block_ids {', 'blocks_ids {');
+$defaultItemCategories = array('item {', 'items {', 'item_ids {', 'items_ids {');
 
 { ### RESERVED ID'S
 $reservedVanillaBlocks = array(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,164,165,166,167,168,169,170,171,172,173);
@@ -92,7 +92,6 @@ $shiftValue = 256;
 
 $indent = 0;
 ?>
-<script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js"></script>
 <script language="javascript" src="scripts.js"></script>
 
 <HTML>
@@ -100,17 +99,55 @@ $indent = 0;
 
 <body>
 
+<div class=title>
+  <div class=inline><img id=logo src='logo50x50.png' onMouseOver='document.getElementById("title").innerHTML="Spacepie!"; document.getElementById("logo").src="spacepie.png";' onMouseOut='document.getElementById("title").innerHTML="The Minecraft ID Resolver"; document.getElementById("logo").src="logo50x50.png";'></img></div>
+  <div id=title style='cursor: default;' class=inline>The Minecraft ID Resolver</div>
+</div>
+<div class=subTitle>by Forecaster</div>
+<div id=noscript class=noscript>
+    <div>Hi! It appears you have javascript disabled! This web-application is designed with this in mind, but be aware that some features are going to be unavaliable to you!</div>
+    <div class=topmrgn>The site is going to be messier and you're going to have to do a lot of scrolling because elements can't be hidden and shown dynamically without javascript.</div>
+    <div class=topmrgn>Certain things like the "clear" buttons are going to do nothing for example.</div>
+</div>
+<script>hide(document.getElementById("noscript"));</script>
+<div class=divider></div>
+
 <?php
+  session_start();
+  
+  if (isset($_POST['debug']))
+    $debug = $_POST['debug'];
+  elseif (isset($_SESSION['debug']))
+    $debug = $_SESSION['debug'];
+  else
+    $debug = 0;
+  
+  if (isset($debug) && $debug > 0)
+  {
+    echo "<div class=debug>Session ID: " . session_id() . "</div>";
+    echo "<div class=debug>Debug $debug</div>";
+  }
+    
+  if (isset($_SESSION['config']))
+    $config = $_SESSION['config'];
+  
+  if (isset($_POST['key']))
+    $filekey = $_POST['key'];
+  else
+    $filekey = null;
+  #elseif (isset($_SESSION['filekey']))
+    #$filekey = $_SESSION['filekey'];
 
 $step = $_POST['step'];
 if (!isset($step) || $step == 'mode')
-  include("inc_step_mode.php");
-
-if ($step == 'upload')
   include("inc_step_upload.php");
+  #include("inc_step_mode.php");
+
+#if ($step == 'upload')
+  #include("inc_step_upload.php");
 
 if ($step == 'compat')
-  include("inc_Step_compat.php");
+  include("inc_step_compat.php");
 
 if ($step == 'analysis')
   include("inc_step_analysis.php");
@@ -120,23 +157,15 @@ if ($step == 'assigning')
 
 if ($step == 'download')
   include("inc_step_download.php");
+  
+  $_SESSION['config'] = $config;
+  $_SESSION['debug'] = $debug;
+  
+  if ($filekey != "demo")
+    $_SESSION['filekey'] = $filekey;
+  else
+    unset($_SESSION['filekey']);
 ?>
 </HTML>
 
-<!-- Start of StatCounter Code for Default Guide -->
-<script type="text/javascript">
-var sc_project=9503528; 
-var sc_invisible=1; 
-var sc_security="89632002"; 
-var scJsHost = (("https:" == document.location.protocol) ?
-"https://secure." : "http://www.");
-document.write("<sc"+"ript type='text/javascript' src='" +
-scJsHost+
-"statcounter.com/counter/counter.js'></"+"script>");
-</script>
-<noscript><div class="statcounter"><a title="hit counter"
-href="http://statcounter.com/" target="_blank"><img
-class="statcounter"
-src="http://c.statcounter.com/9503528/0/89632002/1/"
-alt="hit counter"></a></div></noscript>
-<!-- End of StatCounter Code for Default Guide -->
+<?php require_once("inc_stat.php");?>

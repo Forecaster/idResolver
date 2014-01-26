@@ -1,15 +1,11 @@
 <?php
-  session_start();
-  $debug = $_SESSION['debug'];
-  $config = $_SESSION['config'];
-  $filekey = $_SESSION['filekey'];
   
   echo $debug . "<br>";
   step($step);
   
   echo "
   <head>
-    <title>Minecraft ID Resolver - Download Step</title>
+    <title>ID Resolver - Download</title>
   </head>";
   
   echo "<div id=key class=key>" . $filekey . "</div>";
@@ -64,6 +60,4 @@
   {
     echo "<div>No download is provided because no file was uploaded. The data that have been displayed has come from demo files. To get a download please start over and upload a zip archive with configs.</div>";
   }
-  
-  session_write_close();
 ?>

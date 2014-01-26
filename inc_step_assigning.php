@@ -1,10 +1,4 @@
 <?php
-  session_start();
-  #session_id(1);
-
-  $debug = $_SESSION['debug'];
-  $config = $_SESSION['config'];
-  $filekey = $_SESSION['filekey'];
   
   if ($_POST['startblock'] > 0)
     $startblock = $_POST['startblock'];
@@ -20,7 +14,7 @@
   
   echo "
   <head>
-    <title>Minecraft ID Resolver - Assign Step</title>
+    <title>ID Resolver - Assign</title>
   </head>";
   
   echo "<div id=key class=key>Key: " . $_SESSION['filekey'] . "</div><br><br>";
@@ -357,10 +351,6 @@
   echo "</div>";
   
   #myVarDump($config);
-
-  $_SESSION['config'] = $config;
-  $_SESSION['debug'] = $debug;
-  $_SESSION['filekey'] = $filekey;
   
   /*echo "New configs:<br>";
   foreach ($config as $key => $value)

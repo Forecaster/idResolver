@@ -81,6 +81,20 @@ function toggleHiddenBlock(source, target, height)
   }
 }
 
+function togglePlusMinusIcon(target)
+{
+  var thing = document.getElementById(target);
+  
+  if (thing.innerHTML =="+")
+  {
+    thing.innerHTML="-";
+  }
+  else
+  {
+    thing.innerHTML="+";
+  }
+}
+
 function toggleHidden(target, height)
 {
   if (target.style.visibility == 'hidden')
@@ -114,5 +128,38 @@ function hideConflicts(string)
     {
       hide(targets[i]);
     }
+  }
+}
+
+function clearCompatabilityDefinition(target)
+{
+  document.getElementById(target).innerHTML=null;
+  
+  document.getElementById(target).value=null;
+}
+
+function clearAllCompatabilityDefinitions(targetGroup)
+{
+  document.getElementById(targetGroup + "_blockCategories").innerHTML=null;
+  document.getElementById(targetGroup + "_itemCategories").innerHTML = null;
+  document.getElementById(targetGroup + "_blocks").innerHTML = null;
+  document.getElementById(targetGroup + "_items").innerHTML = null;
+  document.getElementById(targetGroup + "_ranges").innerHTML = null;
+  
+  document.getElementById(targetGroup + "_blockCategories").value=null;
+  document.getElementById(targetGroup + "_itemCategories").value = null;
+  document.getElementById(targetGroup + "_blocks").value = null;
+  document.getElementById(targetGroup + "_items").value = null;
+  document.getElementById(targetGroup + "_ranges").value = null;
+}
+
+function noidsWarning(target)
+{
+  var checkbox = document.getElementById(target + "_noids");
+  var root = document.getElementById(target + "_noids_root");
+  
+  if (checkbox.checked)
+  {
+    root.className="warning";
   }
 }

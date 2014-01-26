@@ -1,37 +1,56 @@
 <?php
 function step($currentstep)
 {
-  $step['mode']['name'] = "STEP: Mode";
-  $step['mode']['info'] = "Select mode";
+  #$step['mode']['name'] = "Mode";
+  #$step['mode']['info'] = "Select a mode";
   
-  $step['upload']['name'] = "STEP: Upload";
+  $step['upload']['name'] = "Upload";
   $step['upload']['info'] = "Upload a zip archive";
   
-  $step['compat']['name'] = "STEP: Compatability";
-  $step['compat']['info'] = "Select compatability options for files";
+  $step['compat']['name'] = "Compatibility";
+  $step['compat']['info'] = "Overview and select compatibility options for files";
   
-  $step['analysis']['name'] = "STEP: Analysis";
-  $step['analysis']['info'] = "Lock ids & change starting id's";
+  $step['analysis']['name'] = "Analysis";
+  $step['analysis']['info'] = "Lock ids & change starting ids";
   
-  $step['assigning']['name'] = "STEP: Assigning";
-  $step['assigning']['info'] = "Observe changes";
+  $step['assigning']['name'] = "Assigning";
+  $step['assigning']['info'] = "Overview changes to config files";
   
-  $step['download']['name'] = "STEP: Download";
-  $step['download']['info'] = "Download";
+  $step['download']['name'] = "Download";
+  $step['download']['info'] = "Download your new configs";
   
-  echo "<div class=center><Table style='border: 1px solid gray;margin-left: auto; margin-right: auto;'>";
-  foreach ($step as $key => $value)
+  if (!isset($currentstep))
+    $currentstep = "upload";
+  
+  echo "
+  <div class=stepBox>";
+  
+  $counter = 1;
+  $crumbs = 1;
+  foreach ($step as $stepKey => $stepValue)
   {
-    if ($key == $currentstep) $class = "step"; else $class = null;
+    if ($currentstep == $stepKey)
+    {
+      echo "<div class='inline currentStep'>" . $stepValue['name'] . "</div>";
+      $crumbs = 0;
+    }
+    else
+    {
+      if ($crumbs == 1)
+        echo "<div class='inline crumbStep'>" . $stepValue['name'] . "</div>";
+      else
+        echo "<div class=inline>" . $stepValue['name'] . "</div>";
+    }
     
-    echo "
-    <TR>
-      <TD class=$class>" . $value['name'] . "</TD>
-      <TD class=$class> | In this step you may:</TD>
-      <TD class=$class>" . $value['info'] . "</TD>
-    </TR>";
+    if ($counter != sizeof($step))
+      echo "<div class='inline stepDivider'>/</div>";
+    $counter++;
   }
-  echo "</Table></div>";
+  
+  echo "
+  </div>
+  <div class=stepInfo>" . $step[$currentstep]['info'] . "</div>
+  <div class=divider></div>";
 }
 
 function myVarDump($array)
@@ -84,7 +103,11 @@ function myReadFile($filepath)
 
 function myReadDir($dirpath, $searchfor, $ignore, $subdir, $level, $debug) #max debug 4
 {
-  global $indent, $compat, $levels;
+  global $indent, $levels;
+  
+  if (!isset($dirpath))
+    return false;
+  
   if (isset($subdir)) $indent = $indent + 1;
   if ($debug > 0) echo "<div class=functionOutput>";
   if ($debug > 2 && isset($subdir)) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]Reading sub-dir: " . basename($subdir) . "</div>";
@@ -100,53 +123,15 @@ function myReadDir($dirpath, $searchfor, $ignore, $subdir, $level, $debug) #max 
       $entrypath = $dirpath . "/" . $entry;
       if (is_dir($entrypath))
       {
-        if (isset($compat))
-        {
-          if ($level == 0)
-            $compatTarget = $subdir."/".$entry."/folder.cfg";
+        if ($debug >= 2) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]$entry is a directory!</div>";
+        $level++;
+        $newEntries = myReadDir($entrypath, $searchfor, $ignore, $subdir."/".$entry, $level, $debug);
+        if (count($newEntries) != 0)
+          if (isset($entries))
+            $entries = array_merge($entries, $newEntries);
           else
-          {
-            $counter = 1;
-            while ($counter != $level)
-            {
-              $subdir = str_replace(dirname($subdir), '', $subdir);
-              $counter++;
-            }
-            
-            if (substr($subdir, 0, 1) == "/")
-              $compatTarget = $subdir."/".$entry."/folder.cfg";
-            else
-              $compatTarget = "/".$subdir."/".$entry."/folder.cfg";
-              
-            #echo "<div>Level: $level</div>";
-            #echo "<div>$subdir</div>";
-            #echo "<div>$compatTarget</div>";
-          }
-          
-          if ($debug >= 2) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]Checking $compatTarget against folder ignore!</div>";
-          if ($debug >= 2) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]Value: " . $compat[$compatTarget]['ignore'] . "</div>";
-        }
-        else
-        {
-          if ($debug >= 1) echo "<div class=warning>[Debug][myReadDir]Compat array not set!</div>";
-        }
-        
-        if (isset($compat) && $compat[$compatTarget]['ignore'] == 'yes')
-        {
-          echo "<div class=note>[Note]Ignored subdir $entry according to compat!</div>";
-        }
-        else
-        {
-          if ($debug >= 2) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]$entry is a directory!</div>";
-          $level++;
-          $newEntries = myReadDir($entrypath, $searchfor, $ignore, $subdir."/".$entry, $level, $debug);
-          if (count($newEntries) != 0)
-            if (isset($entries))
-              $entries = array_merge($entries, $newEntries);
-            else
-              $entries = $newEntries;
-          $level--;
-        }
+            $entries = $newEntries;
+        $level--;
       }
       else
       {
@@ -193,64 +178,63 @@ function myReadDir($dirpath, $searchfor, $ignore, $subdir, $level, $debug) #max 
 
 function extractValues($filename, $contents, $compat, $debug) #max debug 4
 {
-  global $defaultBlockblocks, $defaultItemblocks;
+  global $defaultBlockCategories, $defaultItemCategories;
   $counter = 0;
   $total_counter = 0;
 
   if ($debug > 0) echo "<div class=debug>[extractValues]Working file: $filename</div>";
+
   
-  foreach ($compat as $compatKey => $compatValue)
+  if (isset($compat))
   {
-    if (($compatName = stristr($filename, $compatKey)) !== false)
-    {
-      $foundCompat = 1;
-      break;
-    }
-  }
-  
-  if ($foundCompat == 1)
-  {
-    if ($debug > 0) echo "<div class=debug>[extractValues]Found compat file $compatName for $filename!</div>";
+    if ($debug > 0) echo "<div class=debug>[extractValues]Recieved compatibility data for $filename!</div>";
   }
   else
   {
-    if ($debug > 0) echo "<div class=debug>[extractValues]Found no compat file for $filename!</div>";
+    if ($debug > 0) echo "<div class=debug>[extractValues]Recieved no compatibility data for $filename!</div>";
   }
   
-  if ($compat[$compatName]['ids'] != 'no' && $compat[$compatName]['unsupported'] != 'yes')
+  if ($compat['noids'] == 0 && $compat['incompatible'] == 0)
   {
     $counter = 0;
     $total_counter = 0;
     
-    if (isset($compat[$compatName]['blockblocks']))
+    if (isset($compat['blockCategories']))
     {
-       $blockblocks = $compat[$compatName]['blockblocks'];
+       $blockCategories = $compat['blockCategories'];
     }
     else
     {
-      if ($debug > 0) echo "<div class=debug>[extractValues]No block block compat. Set default.</div>";
-      $blockblocks = $defaultBlockblocks;
+      if ($debug > 0) echo "<div class=debug>[extractValues]No block category compatibility. Set default.</div>";
+      $blockCategories = $defaultBlockCategories;
     }
     
-    if (isset($compat[$compatName]['itemblocks']))
+    if (isset($compat['itemCategories']))
     {
-      $itemblocks = $compat[$compatName]['itemblocks'];
+      $itemCategories = $compat['itemCategories'];
     }
     else
     {
-      if ($debug > 0) echo "<div class=debug>[extractValues]No item block compat. Set default.</div>";
-      $itemblocks = $defaultItemblocks;
+      if ($debug > 0) echo "<div class=debug>[extractValues]No item category compatibility. Set default.</div>";
+      $itemCategories = $defaultItemCategories;
     }
     
-    if (isset($compat[$compatName]['blocks']))
+    if (isset($compat['blocks']))
     {
-      $blocks = $compat[$compatName]['blocks'];
+      if ($debug > 3) echo "<div class=debug>[extractValues]Inserting into blocks: " . str_replace('\n', ',', $compat['blocks']) . "</div>";
+      $blocks = $compat['blocks'];
     }
+    else
+      if ($debug > 3) echo "<div class=debug>[extractValues]Block compat not set.</div>";
       
-    if (isset($compat[$compatName]['items']))
+    if (isset($compat['items']))
     {
-      $items = $compat[$compatName]['items'];
+      if ($debug > 3) echo "<div class=debug>[extractValues]Inserting into items: " . str_replace('\n', ',', $compat['items']) . "</div>";
+      $items = $compat['items'];
     }
+    else
+      if ($debug > 3) echo "<div class=debug>[extractValues]Item compat not set.</div>";
+    
    $line = preg_split('/\n|\r/', $contents, -1, PREG_SPLIT_NO_EMPTY);
     
     if ($debug > 0) echo "<div class=debug>[extractValues]Trying individual</div>";
@@ -266,9 +250,9 @@ function extractValues($filename, $contents, $compat, $debug) #max debug 4
       if (isset($id) && is_numeric($id) && $id > 0)
       {
         $key = str_replace('I:', '', $key);
-        #if ($debug > 0) echo "<div>[Debug][extractValues]Scanning key: $key</div>";
+        if ($debug >= 4) echo "<div>[Debug][extractValues]Scanning key: $key</div>";
         
-        if (str_in_array($key, $blocks))
+        if (str_in_array($key, $blocks) || str_in_str($key, $blocks))
         {
           if ($debug >= 4) echo "<div class=debug>[extractValues]Block: " . $lineKey . " => " . $lineValue . "</div>";
           
@@ -278,7 +262,7 @@ function extractValues($filename, $contents, $compat, $debug) #max debug 4
           
           $counter++;
         }
-        elseif (str_in_array($key, $items))
+        elseif (str_in_array($key, $items) || str_in_str($key, $items))
         {
           if ($debug >= 4) echo "<div class=debug>[extractValues]Item: " . $lineKey . " => " . $lineValue . "</div>";
           
@@ -298,15 +282,25 @@ function extractValues($filename, $contents, $compat, $debug) #max debug 4
     {
       if (stristr($lineValue, '{'))
       {
-        if (str_in_array($lineValue, $blockblocks))
+        if (str_in_array($lineValue, $blockCategories))
         {
           $type = "block";
-          if ($debug >= 3) echo "<div class=debug>[extractValues]!!! Found valid config block! ($lineValue)</div>";
+          if ($debug >= 3) echo "<div class=debug>[extractValues]!!! Found valid config block (array)! ($lineValue)</div>";
         }
-        elseif (str_in_array($lineValue, $itemblocks))
+        elseif (str_in_str($lineValue, $blockCategories))
+        {
+          $type = "block";
+          if ($debug >= 3) echo "<div class=debug>[extractValues]!!! Found valid config block (string)! ($lineValue)</div>";
+        }
+        elseif (str_in_array($lineValue, $itemCategories))
         {
           $type = "item";
-          if ($debug >= 3) echo "<div class=debug>[extractValues]!!! Found valid config block! ($lineValue)</div>";
+          if ($debug >= 3) echo "<div class=debug>[extractValues]!!! Found valid config block (array)! ($lineValue)</div>";
+        }
+        elseif (str_in_str($lineValue, $itemCategories))
+        {
+          $type = "item";
+          if ($debug >= 3) echo "<div class=debug>[extractValues]!!! Found valid config block (string)! ($lineValue)</div>";
         }
         else
         {
@@ -353,11 +347,11 @@ function extractValues($filename, $contents, $compat, $debug) #max debug 4
       $total_counter++;
     }
   }
-  elseif ($compat[$compatName]['ids'] == 'no')
+  elseif ($compat['noids'] == 1)
   {
     $counter = -1;
   }
-  elseif ($compat[$compatName]['unsupported'] == 'yes')
+  elseif ($compat['incompatible'] == 1)
   {
     $counter = -2;
   }
@@ -508,35 +502,51 @@ function rrmdir($dir)
   rmdir($dir);
 }
 
+function str_in_str($string1, $string2)
+{
+  if (stristr(trim($string2), trim($string1)) != false)
+    return true;
+  else
+    return false;
+}
+
 function str_in_array($str, $array)
 {
-  foreach ($array as $arrayKey => $arrayValue)
+  if (is_array($array))
   {
-    if (is_array($arrayValue))
+    foreach ($array as $arrayKey => $arrayValue)
     {
-      if (str_in_array($str, $arrayValue))
-        return true;
-    }
-    else
-    {
-      if ($arrayValue == trim($str))
+      #echo "<div class=debug>[str_in_array]Comparing $str with $arrayValue</div>";
+      if (is_array($arrayValue))
       {
-        #echo "<div class=debug>[Debug][str_in_array]Value '$str' matches '$arrayValue'</div>";
-        return true;
+        if (str_in_array($str, $arrayValue))
+          return true;
+      }
+      else
+      {
+        if ($arrayValue == trim($str))
+        {
+          #echo "<div class=debug>[str_in_array]Value '$str' matches '$arrayValue'</div>";
+          return true;
+        }
       }
     }
   }
   
+  #echo "<div class=debug>[str_in_array]No match for $str could be found.</div>";
   return false;
 }
 
 function key_in_array($key, $array)
 {
-  foreach ($array as $arrayKey => $arrayValue)
+  if (is_array($array))
   {
-    #echo "<div class=note>Checking '$key' against '$arrayKey'</div>";
-    if ($arrayKey == $key)
-      return true;
+    foreach ($array as $arrayKey => $arrayValue)
+    {
+      #echo "<div class=note>Checking '$key' against '$arrayKey'</div>";
+      if ($arrayKey == $key)
+        return true;
+    }
   }
   
   return false;
@@ -544,24 +554,27 @@ function key_in_array($key, $array)
 
 function partial_str_in_array($str, $array)
 {
-  foreach ($array as $arrayKey => $arrayValue)
+  if (is_array($array))
   {
-    echo "<div class=debug>[partial_str_in_array]Comparing $arrayValue with $str</div>";
-    if (is_array($arrayValue))
+    foreach ($array as $arrayKey => $arrayValue)
     {
-      return partial_str_in_array($str, $arrayValue);
-    }
-    else
-    {
-      if (strpos($arrayValue, $str) !== false)
+      echo "<div class=debug>[partial_str_in_array]Comparing $arrayValue with $str</div>";
+      if (is_array($arrayValue))
       {
-        echo "<div class=debug>[partial_str_in_array]Match!</div>";
-        return true;
+        return partial_str_in_array($str, $arrayValue);
+      }
+      else
+      {
+        if (strpos($arrayValue, $str) !== false)
+        {
+          echo "<div class=debug>[partial_str_in_array]Match!</div>";
+          return true;
+        }
       }
     }
+    echo "<div class=debug>[partial_str_in_array]No matches found.</div>";
   }
   
-  echo "<div class=debug>[partial_str_in_array]No matches found.</div>";
   return false;
 }
 
@@ -668,13 +681,16 @@ function readCompat($content, $debug)
 
 function cleanArray($array)
 {
-  foreach ($array as $arrayKey => $arrayValue)
+  if (is_array($array))
   {
-    if ($arrayValue != null)
-      if (is_int($arrayKey))
-        $returnArray[] = $arrayValue;
-      else
-        $returnArray[$arrayKey] = $arrayValue;
+    foreach ($array as $arrayKey => $arrayValue)
+    {
+      if ($arrayValue != null)
+        if (is_int($arrayKey))
+          $returnArray[] = $arrayValue;
+        else
+          $returnArray[$arrayKey] = $arrayValue;
+    }
   }
   
   return $returnArray;
@@ -747,13 +763,16 @@ function getRanges($array)
 
 function find_conflicting_ids($array, $id)
 {
-  foreach ($array as $arrayKey => $arrayValue)
+  if (is_array($array))
   {
-    if ($arrayValue['id'] == $id)
-      $conflicts[] = $arrayKey;
-  }
+    foreach ($array as $arrayKey => $arrayValue)
+    {
+      if ($arrayValue['id'] == $id)
+        $conflicts[] = $arrayKey;
+    }
   
-  return $conflicts;
+    return $conflicts;
+  }
 }
 
 function thisOptionLocked($option, $id, $source, $lockedArray)
@@ -786,5 +805,15 @@ function thisIdLocked($id, $locked)
   
   #echo "<div class=debug>No matches found.</div>";
   return false;
+}
+
+function formNameEncode($string)
+{
+  return str_replace('.', '%01', $string);
+}
+
+function formNameDecode($string)
+{
+  return str_replace('%01', '.', $string);
 }
 ?>

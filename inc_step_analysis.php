@@ -3,18 +3,106 @@
   
   echo "
   <head>
-    <title>Minecraft ID Resolver - Analysis Step</title>
+    <title>ID Resolver - Analysis</title>
   </head>";
   
-  list($error, $filekey) = recieveFile('file');
-  
-  if ($error == -1)
+  if (isset($_POST['resubmit']))
   {
-    $filekey = "demo";
-    $error = 0;
+    foreach ($_POST as $postKey => $postValue)
+    {
+      if ($postKey != "step" && $postKey != "key" && $postKey != "resubmit")
+      {
+        if (isset($postValue) && $postValue != null)
+        {
+          list($key, $subkey) = explode(':', $postKey);
+          $key = formNameDecode($key);
+          $compat_form[$key][$subkey] = $postValue;
+        }
+      }
+    }
+    #echo "<div class=debug>";
+    #myVarDump($compat_form);
+    #echo "</div>";
   }
   
-  session_start();
+  foreach ($compat_form as $formKey => $formValue)
+  {
+    $path = $formKey;
+    $blockCat = $formValue['blockCategories'];
+    $itemCat = $formValue['itemCategories'];
+    $blocks = $formValue['blocks'];
+    $items = $formValue['items'];
+    $ranges = $formValue['ranges'];
+    $preshifted = $formValue['preshifted'];
+    $noids = $formValue['noids'];
+    $incompatible = $formValue['incompatible'];
+    $ignore = $formValue['ignore'];
+    
+    $columns = "path, valid";
+    $values = "'$path', 0";
+    if ($blockCat != null)
+    {
+      $columns .= ", blockCategories";
+      $values .= ", '$blockCat'";
+    }
+    if ($itemCat != null)
+    {
+      $columns .= ", itemCategories";
+      $values .= ", '$itemCat'";
+    }
+    if ($blocks != null)
+    {
+      $columns .= ", blocks";
+      $values .= ", '$blocks'";
+    }
+    if ($items != null)
+    {
+      $columns .= ", items";
+      $values .= ", '$items'";
+    }
+    if ($ranges != null)
+    {
+      $columns .= ", ranges";
+      $values .= ", '$ranges'";
+    }
+    if ($preshifted != null)
+    {
+      $columns .= ", preshifted";
+      $values .= ", $preshifted";
+    }
+    if ($noids != null)
+    {
+      $columns .= ", noids";
+      $values .= ", $noids";
+    }
+    if ($incompatible != null)
+    {
+      $columns .= ", incompatible";
+      $values .= ", $incompatible";
+    }
+    if ($ignore != null)
+    {
+      $columns .= ", ignore";
+      $values .= ", $ignore";
+    }
+    
+    $query = "INSERT INTO compatibility_pending ($columns) VALUES ($values)";
+    #echo "<div class=debug>$query</div>";
+    $result = mysqli_query($con, $query);
+    
+    if (!$result) die(mysqli_error($con));
+  }
+  
+  if (!isset($filekey) || $filekey == "demo")
+  {
+    list($error, $filekey) = recieveFile('file');
+    
+    if ($error == -1)
+    {
+      $filekey = "demo";
+      $error = 0;
+    }
+  }
   
   if ($error == 0)
   {
@@ -30,30 +118,11 @@
     Here you may specify the starting values at which block and item id's will start being assigned.<br>
     These will override the default values. Leave blank to use the defaults.<br>
     <form action='#fromAnalysis' method=post>
-   <input type=text size=40 name=startblock placeholder='Starting block ID (Default: $startblock)' />
-   <input type=text size=40 name=startitem placeholder='Starting item ID (Default: $startitem)' /><br>
-   <input class=button type='submit' value='Next' />";
-    
-    
-    if ($filekey != "demo")
-    {
-      $archivepath = "archives/$filekey.zip";
-      $targetpath = "extracted/$filekey";
-      
-      #list($times_read, $configs, $configValues, $names) = readZip($path . $filename, $ignore, 2);
-      
-      echo "<div id=messages class=noteBox>";
-      
-      if (!extractZip($archivepath, $targetpath))
-        echo "<div class=error>[Error]Something went wrong when trying to extract your archive!</div>";
-      
-      $dirpath = "extracted/$filekey";
-    }
-    elseif ($filekey == "demo")
-    {
-      $dirpath = "demofiles";
-    }
-    
+    <input type=text size=40 name=startblock placeholder='Starting block ID (Default: $startblock)' />
+    <input type=text size=40 name=startitem placeholder='Starting item ID (Default: $startitem)' /><br>
+    <input class=button type='submit' value='Next' />
+    <div id=messages class=noteBox>";
+   
     unset($levels);
     $entries = myReadDir($dirpath, $search, null, null, 0, $debug);
     
@@ -84,6 +153,8 @@
     
     foreach ($config as $configKey => $configValue)
     {
+      $compat = $compat_form[$config[$configKey]['path']];
+      
       $skip = 0;
       if ($debug > 0) echo "<div>[Debug]Reading file " . $configValue['fullpath'] . "</div>";
       $filepath = $configValue['fullpath'];
@@ -140,7 +211,7 @@
       }
     }
     
-    echo "</div><script>toggleHidden(document.getElementById('messages'), null);</script>";
+    echo "</div><script>toggleHidden(document.getElementById('messages'), null);</script>"; #end of id=messages
     
     echo "<div class=pnt onClick='toggleHidden(document.getElementById(\"messages\"), null);'>[ ";
     if ($counter_notes >= 1) echo "$counter_notes notes, ";

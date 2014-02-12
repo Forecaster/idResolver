@@ -9,6 +9,17 @@
     $startitem = $_POST['startitem'];
   elseif (isset($_SESSION['startitem']))
     $startitem = $_SESSION['startitem'];
+    
+  if ($_POST['spaceblock'] > 0)
+    $spaceblock = $_POST['spaceblock'];
+  
+  if ($_POST['spaceitem'] > 0)
+    $spaceitem = $_POST['spaceitem'];
+    
+  if ($_POST['transmit'] == 0 || $_POST['pending'] == 0)
+  {
+    $compat_form = $_SESSION['compat_form'];
+  }
   
   step($step);
   
@@ -17,7 +28,7 @@
     <title>ID Resolver - Assign</title>
   </head>";
   
-  echo "<div id=key class=key>Key: " . $_SESSION['filekey'] . "</div><br><br>";
+  echo "<div id=key class=key>Key: " . $filekey . "</div><br><br>";
   
   echo "
   <div>
@@ -43,22 +54,6 @@
     $post_counter++;
   }
   
-  echo "<div>Counted $post_counter post entries!</div>";
-  echo "<div style='border: 1px solid black; height: 100px; overflow-y: scroll;overflow-x: none;'>";
-  myVarDump($_POST);
-  echo "</div>";
-  
-  echo "<div>Counted $post_counter post entries!</div>";
-  echo "<div style='border: 1px solid black; height: 100px; overflow-y: scroll;overflow-x: none;'>";
-  myVarDump($locked);
-  echo "</div>";
-  
-  #echo "<div style='border: 1px solid black; height: 100px; overflow-y: scroll;overflow-x: none;'>";
-  #myVarDump($config);
-  #echo "</div>";
-  
-  #echo "[Debug]Found $post_counter locked items.<br>";
-  
   $newblockidcounter = $startblock;
   $newitemidcounter = $startitem;
   
@@ -67,6 +62,8 @@
   <div id=blockassign class=blockassign>";
   foreach ($config as $configIndex => $configValue)
   {
+    $path = $configValue['path'];
+    
     if ($configValue['idCounter'] > 0)
     {
       $counter_block_change = 0;
@@ -75,14 +72,67 @@
       $counter_block_error = 0;
       
       echo "
-      <div class='titleBar pnt' onClick='toggleHiddenBlock(this, \"block_" . $configValue['path'] . "\", null)'>File: " . $configValue['path'] . "</div>
-      <div id='block_" . $configValue['path'] . "'>";
+      <div class='titleBar pnt' onClick='toggleHiddenBlock(this, \"block_" . $path . "\", null)'>File: " . $path . "</div>
+      <div id='block_" . $path . "'>";
       
+      echo "<div class=debug>Looking for compat for $path</div>";
+      
+      if ($_POST['standard'] == 1)
+      {
+        unset($compat_data_result);
+        unset($compat_data);
+        $query = "SELECT * FROM compatibility WHERE filepath='" . mysqli_real_escape_string($con, $path) . "'";
+        $compat_data_result = mysqli_query($con, $query);
+        if ($compat_data_result !== false)
+          $compat_data = mysqli_fetch_array($compat_data_result);
+        else
+          die(mysqli_error($con));
+      }
+      
+      if ($_POST['pending'] == 1)
+      {
+        unset($compat_data_result_secondary);
+        unset($compat_data_secondary);
+        $query = "SELECT * FROM compatibility_pending WHERE filepath='" . mysqli_real_escape_string($con, $path) . "'";
+        $compat_data_result_secondary = mysqli_query($con, $query);
+        if ($compat_data_result_secondary !== false)
+          $compat_data_secondary = mysqli_fetch_array($compat_data_result_secondary);
+        else
+          die(mysqli_error($con));
+      }
+      
+      unset($compat_data_form);
+      $compat_data_form = $compat_form[$path];
+      
+      if ($compat_data != null && $compat_data !== false)
+        $compatData = true;
+      elseif ($compat_data_secondary != null && $compat_data_secondary !== false)
+        $compatData = true;
+      elseif ($compat_data_form != null)
+        $compatData = true;
+      else
+        $compatData = false;
+        
+      // echo "<div class=debug>";
+      // if ($compat_data != null)
+      // {
+        // echo "<div>Primary</div>";
+        // myVarDump($compat_data);
+      // }
+      // elseif ($compat_data_secondary != null)
+      // {
+        // echo "<div>Secondary</div>";
+        // myVarDump($compat_data_secondary);
+      // }
+      // echo "</div>";
+        
+      /* 
       foreach ($compat[$configValue['name']]['blockranges'] as $compatIndex => $compatValue)
       {
         $localCompat[$compatValue['key']] = $compatValue['range'];
       }
-      
+       */
+       
       foreach ($configValue['values'] as $configValueValue)
       {
         $targetValue = trim($configValueValue['id'] . "=" . $configValueValue['value']);
@@ -90,9 +140,9 @@
         {
           echo "<div>[blockAssign]Assigning " . $configValueValue['id'] . "</div>";
           if ($debug > 0) echo "<div class=debug>[Debug][blockAssign]Checking for \"" . $targetValue . "\" in locked array!</div>";
-          if ($debug > 0) echo "<div class=debug>[Debug][blockAssign]thisOptionLocked check: " . thisOptionLocked($configValueValue['id'], $configValueValue['value'], $configValue['path'], $locked) . "</div>";
+          if ($debug > 0) echo "<div class=debug>[Debug][blockAssign]thisOptionLocked check: " . thisOptionLocked($configValueValue['id'], $configValueValue['value'], $path, $locked) . "</div>";
           
-          if (!thisOptionLocked($configValueValue['id'], $configValueValue['value'], $configValue['path'], $locked))
+          if (!thisOptionLocked($configValueValue['id'], $configValueValue['value'], $path, $locked))
           {
             $assigned = false;
             
@@ -148,15 +198,48 @@
                     // echo "<div>Looking for '" . $currentKey . "' in localCompat</div>";
                     // echo "<div>Key: " . key_in_array($currentKey, $localCompat) . "</div>";
                   // }
-                  
-                  
-                  if (key_in_array($currentKey, $localCompat))
+                  $rangeSet = false;
+                  if ($compatData === true)
                   {
-                    if ($debug > 0) echo "<div>[Debug]Increased item id counter by " . ($localCompat[$currentKey] - 1) . "</div>";
-                    $newblockidcounter += ($localCompat[$currentKey] - 1);
+                    if ($compat_data['ranges'] != null)
+                      $compat_ranges = $compat_data['ranges'];
+                    elseif ($compat_data_secondary['ranges'] != null)
+                      $compat_ranges = $compat_data_secondary['ranges'];
+                    elseif ($compat_data_form['ranges'] != null)
+                      $compat_ranges = $compat_data_form['ranges'];
+                    
+                    if ($compat_ranges != null)
+                    {
+                      $compat_ranges = str_replace("\n\r", "\n", $compat_ranges);
+                      $ranges = explode("\n", $compat_ranges);
+                      
+                      foreach ($ranges as $value)
+                      {
+                        list($key, $shift) = explode(':', $value);
+                        
+                        if ($key == $currentKey)
+                        {
+                          $newblockidcounter += $shift;
+                          $rangeSet = true;
+                          break;
+                        }
+                      }
+                    }
                   }
-                  else
+                  
+                  if ($rangeSet !== true)
+                  {
+                    echo "<div class=debug>No range found for $currentKey</div>";
                     $newblockidcounter++;
+                  }
+                  
+                  // if (key_in_array($currentKey, $localCompat))
+                  // {
+                    // if ($debug > 0) echo "<div>[Debug]Increased item id counter by " . ($localCompat[$currentKey] - 1) . "</div>";
+                    // $newblockidcounter += ($localCompat[$currentKey] - 1);
+                  // }
+                  // else
+                    // $newblockidcounter++;
                 }
                 else
                 {
@@ -182,7 +265,7 @@
           #echo "Ignored non-block.<br>";
       }
       echo "</div>
-      <div class='subBar pnt' onClick='toggleHiddenBlock(this, \"block_" . $configValue['path'] . "\", null)'>";
+      <div class='subBar pnt' onClick='toggleHiddenBlock(this, \"block_" . $path . "\", null)'>";
       if ($counter_block_change > 1) echo "$counter_block_change changes"; elseif ($counter_block_change == 1) echo "1 change";
       if ($counter_block_change > 0 && ($counter_block_conflict > 0 || $counter_block_locked > 0 || $counter_block_error > 0)) echo ", ";
       if ($counter_block_conflict > 1) echo "<div class=warning>$counter_block_conflict conflicts</div>"; elseif ($counter_block_conflict == 1) echo "<div class=warning>1 conflict</div>";
@@ -190,8 +273,10 @@
       if ($counter_block_locked > 0) echo "<div class=note>$counter_block_locked locked</div>";
       if ($counter_block_conflict > 0 && $counter_block_error > 0) echo ", ";
       if ($counter_block_error > 1) echo "<div class=error>$counter_block_error errors</div>"; elseif ($counter_block_error == 1) echo "<div class=error>1 error</div>";
-      echo "</div><script>toggleHidden(document.getElementById('block_" . $configValue['path'] . "'), null)</script>
+      echo "</div><script>toggleHidden(document.getElementById('block_" . $path . "'), null)</script>
       <div style='height: 5px;'></div>";
+    
+      $newblockidcounter += $spaceblock;
     }
   }
   echo "</div>";
@@ -201,11 +286,13 @@
   <div id=itemassign class=blockassign>";
   foreach ($config as $configIndex => $configValue)
   {
+    $path = $configValue['path'];
+    
     if ($configValue['idCounter'] > 0)
     {
       echo "
-      <div class='titleBar pnt' onClick='toggleHiddenBlock(this, \"item_" . $configValue['path'] . "\", null)'>File: " . $configValue['path'] . "</div>
-      <div id='item_" . $configValue['path'] . "'>";
+      <div class='titleBar pnt' onClick='toggleHiddenBlock(this, \"item_" . $path . "\", null)'>File: " . $path . "</div>
+      <div id='item_" . $path . "'>";
       
       foreach ($compat[$configValue['name']]['itemranges'] as $compatIndex => $compatValue)
       {
@@ -217,6 +304,66 @@
       $counter_item_locked = 0;
       $counter_item_error = 0;
       
+      echo "<div class=debug>Looking for compat for $path</div>";
+      
+      if ($_POST['standard'] == 1)
+      {
+        unset($compat_data_result);
+        unset($compat_data);
+        $query = "SELECT * FROM compatibility WHERE filepath='" . mysqli_real_escape_string($con, $path) . "'";
+        $compat_data_result = mysqli_query($con, $query);
+        if ($compat_data_result !== false)
+          $compat_data = mysqli_fetch_array($compat_data_result);
+        else
+          die(mysqli_error($con));
+      }
+      
+      if ($_POST['pending'] == 1)
+      {
+        unset($compat_data_result_secondary);
+        unset($compat_data_secondary);
+        $query = "SELECT * FROM compatibility_pending WHERE filepath='" . mysqli_real_escape_string($con, $path) . "'";
+        $compat_data_result_secondary = mysqli_query($con, $query);
+        if ($compat_data_result_secondary !== false)
+          $compat_data_secondary = mysqli_fetch_array($compat_data_result_secondary);
+        else
+          die(mysqli_error($con));
+      }
+      
+      unset($compat_data_form);
+      $compat_data_form = $compat_form[$path];
+      
+      if ($compat_data != null && $compat_data !== false)
+        $compatData = true;
+      elseif ($compat_data_secondary != null && $compat_data_secondary !== false)
+        $compatData = true;
+      elseif ($compat_data_form != null)
+        $compatData = true;
+      else
+        $compatData = false;
+      
+      unset($compat_ranges);
+      unset($ranges);
+      if ($compat_data['ranges'] != null)
+        $compat_ranges = $compat_data['ranges'];
+      elseif ($compat_data_secondary['ranges'] != null)
+        $compat_ranges = $compat_data_secondary['ranges'];
+      elseif ($compat_data_form['ranges'] != null)
+        $compat_ranges = $compat_data_form['ranges'];
+        
+      if ($compatData === true)
+      {
+        if ($compat_ranges != null)
+        {
+          $compat_ranges = str_replace("\n\r", "\n", $compat_ranges);
+          $ranges = explode("\n", $compat_ranges);
+        }
+        else
+          echo "<div class=debug>No range data for $path</div>";
+      }
+      else
+        echo "<div class=debug>No compat data for $path</div>";
+      
       foreach ($configValue['values'] as $configValueValue)
       {
         $targetValue = trim($configValueValue['id'] . "=" . $configValueValue['value']);
@@ -225,7 +372,7 @@
           echo "<div>[itemAssign]Assigning " . $configValueValue['id'] . "</div>";
           if ($debug > 0) echo "[Debug][itemAssign]Checking for \"" . $targetValue . "\" in locked array!<br>";
           
-          if (!thisOptionLocked($configValueValue['id'], $configValueValue['value'], $configValue['path'], $locked))
+          if (!thisOptionLocked($configValueValue['id'], $configValueValue['value'], $path, $locked))
           {
             $assigned = false;
             
@@ -295,22 +442,38 @@
                   $config[$configIndex]['newContents'] = $change;
                   
                   $assigned = true;
-                  // if ($configValue['name'] == "PortalGun.cfg")
-                  // {
-                    // echo "<div>Looking for '" . $currentKey . "' in localCompat</div>";
-                    // echo "<div>Key: " . key_in_array($currentKey, $localCompat) . "</div>";
-                  // }
                   
-                  #myVarDump($localCompat);
+                  $rangeSet = false;
                   
-                  
-                  if (key_in_array($currentKey, $localCompat))
+                  if ($compatData === true)
                   {
-                    if ($debug > 0) echo "<div>[Debug][itemAssign]Increased item id counter by " . ($localCompat[$currentKey] - 1) . "</div>";
-                    $newitemidcounter += ($localCompat[$currentKey] - 1);
+                    foreach ($ranges as $value)
+                    {
+                      list($key, $shift) = explode(':', $value);
+                      echo "<div class=debug>Comparing $key to $currentKey</div>";
+                      
+                      if ($key == $currentKey)
+                      {
+                        $newitemidcounter += $shift;
+                        $rangeSet = true;
+                        break;
+                      }
+                    }
                   }
-                  else
+                  
+                  if ($rangeSet !== true)
+                  {
+                    if ($compat_ranges != null) echo "<div class=debug>No range found for $currentKey</div>";
                     $newitemidcounter++;
+                  }
+                  
+                  // if (key_in_array($currentKey, $localCompat))
+                  // {
+                    // if ($debug > 0) echo "<div>[Debug][itemAssign]Increased item id counter by " . ($localCompat[$currentKey] - 1) . "</div>";
+                    // $newitemidcounter += ($localCompat[$currentKey] - 1);
+                  // }
+                  // else
+                    // $newitemidcounter++;
                 }
                 else
                 {
@@ -336,7 +499,7 @@
           #echo "Ignored non-item.<br>";
       }
       echo "</div>
-      <div class='subBar pnt' onClick='toggleHiddenitem(this, \"item_" . $configValue['path'] . "\", null)'>";
+      <div class='subBar pnt' onClick='toggleHiddenitem(this, \"item_" . $path . "\", null)'>";
       if ($counter_item_change > 1) echo "$counter_item_change changes"; elseif ($counter_item_change == 1) echo "1 change";
       if ($counter_item_change > 0 && ($counter_item_conflict > 0 || $counter_item_locked > 0 || $counter_item_error > 0)) echo ", ";
       if ($counter_item_conflict > 1) echo "<div class=warning>$counter_item_conflict conflicts</div>"; elseif ($counter_item_conflict == 1) echo "<div class=warning>1 conflict</div>";
@@ -344,8 +507,10 @@
       if ($counter_item_locked > 0) echo "<div class=note>$counter_item_locked locked</div>";
       if ($counter_item_conflict > 0 && $counter_item_error > 0) echo ", ";
       if ($counter_item_error > 1) echo "<div class=error>$counter_item_error errors</div>"; elseif ($counter_item_error == 1) echo "<div class=error>1 error</div>";
-      echo "</div><script>toggleHidden(document.getElementById('item_" . $configValue['path'] . "'), null)</script>
+      echo "</div><script>toggleHidden(document.getElementById('item_" . $path . "'), null)</script>
       <div style='height: 5px;'></div>";
+      
+      $newitemidcounter += $spaceitem;
     }
   }
   echo "</div>";

@@ -81,13 +81,17 @@ div.inputBox
 
 div.descriptionBox
 {
+  position: absolute;
+  left: 334px;
+  z-index: 2;
+  
   display: inline-block;
   border: 1px solid black;
   color: black;
   background-color: #EDEDED;
+  visibility: collapse;
   
   padding: 5px;
-  width: 50%;
   
   -moz-border-radius: 5px;
   -webkit-border-radius: 5px;
@@ -121,7 +125,20 @@ div.blockassign
 
 div.used_ids
 {
+  background-color: lightgray;
   border: 1px dashed gray;
+}
+
+div.customDefinitions
+{
+  width: 350px;
+}
+
+div.reference
+{
+  border: 1px dotted gray;
+  height: 50px;
+  width: 100%;
 }
 
 div.option:nth-child(2n)
@@ -255,6 +272,11 @@ div.desc
 {
   display: inline-block;
   color: black;
+}
+
+div.path
+{
+  font-weight: bold;
 }
 
 /* Misc Styles */

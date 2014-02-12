@@ -20,9 +20,18 @@
         <input class=button type=submit value='Upload' />
         <div class='pnt tiny note' style='text-align: right;' onClick='toggleHidden(document.getElementById(\"debug\"), null)'>Debug</div>
         <div id=debug>
-        <input type=text name=debug placeholder='Debug Level' /> Debug level. (0 - 4) Determines amount of debug output where 0 is none. There will still be normal output though.
+          <input type=text name=debug placeholder='Debug Level' /> Debug level. (0 - 4) Determines amount of debug output where 0 is none. There will still be normal output though.
         </div>
         <script>hide(document.getElementById(\"debug\"))</script>
+        <div>
+          <div>Compatibility Data:</div>
+          <div><div class=inline><input type=checkbox name=standard id=standard value=1 checked></input><label for=standard>Standard</label></div> <div class='inline tiny note'>- Includes verified compatibility data</div></div>
+          <div><div class=inline><input type=checkbox name=pending id=pending value=1 checked></input><label for=pending>Pending</label></div> <div class='inline tiny note'>- Includes unverified compatability data</div></div>
+        </div>
+        <div class=divider></div>
+        <div>
+          <div><div class=inline><input type=checkbox name=transmit id=transmit value=1 checked></input><label for=transmit>Save compatibility data</label></div> <div class='inline tiny note'>- Permits submitting new compatibility data to the database for the benefit of others</div></div>
+        </div>
       </form>
     </div>
   </div>

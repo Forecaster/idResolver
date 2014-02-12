@@ -10,7 +10,7 @@
   {
     foreach ($_POST as $postKey => $postValue)
     {
-      if ($postKey != "step" && $postKey != "key" && $postKey != "resubmit")
+      if ($postKey != "step" && $postKey != "key" && $postKey != "resubmit" && $postKey != "transmit" && $postKey != "standard" && $postKey != "pending")
       {
         if (isset($postValue) && $postValue != null)
         {
@@ -20,6 +20,16 @@
         }
       }
     }
+    
+    if ($transmit == 0)
+    {
+      $_SESSION['compat_form'] = $compat_form;
+    }
+    else
+    {
+      unset($_SESSION['compat_form']);
+    }
+    
     #echo "<div class=debug>";
     #myVarDump($compat_form);
     #echo "</div>";
@@ -38,8 +48,53 @@
     $incompatible = $formValue['incompatible'];
     $ignore = $formValue['ignore'];
     
-    $columns = "path, valid";
-    $values = "'$path', 0";
+    if ($preshifted != 1)
+      $preshifted = 0;
+    if ($noids != 1)
+      $noids = 0;
+    if ($incompatible != 1)
+      $incompatible = 0;
+    if ($ignore != 1)
+      $ignore = 0;
+    
+    $upload = true;
+    
+    if ($_POST['transmit'] != 1)
+      $upload = false;
+    else
+    {
+      $query = "SELECT * FROM compatibility WHERE filepath ='$path'";
+      $result = mysqli_query($con, $query);
+      
+      while ($row = mysqli_fetch_array($result))
+      {
+       # echo "<div class=debug>Checking main $path. " . $row['blockCategories']  . "== $blockCat && " . $row['itemCategories'] . " == $itemCat && " . $row['blocks'] . " == $blocks && " . $row['items'] . " == $items && " . $row['ranges'] . " == $ranges && " . $row['preshifted'] . " == $preshifted && " . $row['noids'] . " == $noids && " . $row['incompatible'] . " == $incompatible && " . $row['ignore'] . " == $ignore</div>";
+        if ($row['blockCategories'] == $blockCat && $row['itemCategories'] == $itemCat && $row['blocks'] == $blocks && $row['items'] == $items && $row['ranges'] == $ranges && $row['preshifted'] == $preshifted && $row['noids'] == $noids && $row['incompatible'] == $incompatible && $row['ignore'] == $ignore)
+        {
+          #echo "<div class=debug>Found existing compat entry for $path!</div>";
+          $upload = false;
+        }
+      }
+      
+      $query = "SELECT * FROM compatibility_pending WHERE filepath ='$path'";
+      $result = mysqli_query($con, $query);
+      
+      while ($row = mysqli_fetch_array($result))
+      {
+        #echo "<div class=debug>Checking pending $path. " . $row['blockCategories']  . "== $blockCat && " . $row['itemCategories'] . " == $itemCat && " . $row['blocks'] . " == $blocks && " . $row['items'] . " == $items && " . $row['ranges'] . " == $ranges && " . $row['preshifted'] . " == $preshifted && " . $row['noids'] . " == $noids && " . $row['incompatible'] . " == $incompatible && " . $row['ignore'] . " == $ignore</div>";
+        if ($row['blockCategories'] == $blockCat && $row['itemCategories'] == $itemCat && $row['blocks'] == $blocks && $row['items'] == $items && $row['ranges'] == $ranges && $row['preshifted'] == $preshifted && $row['noids'] == $noids && $row['incompatible'] == $incompatible && $row['ignore'] == $ignore && $row['file_contents'] == $config[$path]['contents'])
+        {
+          #echo "<div class=debug>Found existing compat entry for $path!</div>";
+          $upload = false;
+        }
+      }
+    
+      if ($blockCat == null && $itemCat == null && $blocks == null && $items == null && $ranges == null && $preshifted != 1 && $noids != 1 && $incompatible != 1 && $ignore != 1)
+        $upload = false;
+    }
+    
+    $columns = "filepath";
+    $values = "'" . str_replace('/config/', '', $path) . "'";
     if ($blockCat != null)
     {
       $columns .= ", blockCategories";
@@ -68,29 +123,41 @@
     if ($preshifted != null)
     {
       $columns .= ", preshifted";
-      $values .= ", $preshifted";
+      $values .= ", '$preshifted'";
     }
     if ($noids != null)
     {
       $columns .= ", noids";
-      $values .= ", $noids";
+      $values .= ", '$noids'";
     }
     if ($incompatible != null)
     {
       $columns .= ", incompatible";
-      $values .= ", $incompatible";
+      $values .= ", '$incompatible'";
     }
-    if ($ignore != null)
+    
+    for ($i = 0; $config[$i]['path'] != $path; $i++)
     {
-      $columns .= ", ignore";
-      $values .= ", $ignore";
+      $contents = mysqli_real_escape_string($con, $config[$i]['contents']);
     }
+    
+    if ($contents != null)
+    {
+      $columns .= ", file_contents";
+      $values .= ", '" . $contents . "'";
+      #echo "<div class=debug>Contents for $path found for storage</div>";
+    }
+    
+    #echo "<div>Path: $path</div>";
     
     $query = "INSERT INTO compatibility_pending ($columns) VALUES ($values)";
     #echo "<div class=debug>$query</div>";
-    $result = mysqli_query($con, $query);
+    if ($upload == true)
+    {
+      $result = mysqli_query($con, $query);
     
-    if (!$result) die(mysqli_error($con));
+      if (!$result) die("<div>Query: $query</div><div>" . mysqli_error($con) . "</div>");
+    }
   }
   
   if (!isset($filekey) || $filekey == "demo")
@@ -109,19 +176,45 @@
     if ($filekey == "demo") echo "<div><div class='demotitle inline'>[ DEMO MODE ]</div><div class='note inline'>[ Displayed data is generated from demo files. To get actual data please upload a zip archive with your configs. ]</div></div>";
     
     echo "
-    Your key: <div id=key class=key>" . $filekey . "</div><br>
-    Copy this key. Should you be unable to download the archive in the final step this can be used to recover it. You should also include this when reporting bugs.<br>
-    <br>
-    Now you may overview the id's that were found in the configs you provided.<br>
-    You may tick the box before any id to lock it. This will exclude this option from being assigned a new id in the next step as well as exclude the same id from the assigning process.<br>
-    <br>
-    Here you may specify the starting values at which block and item id's will start being assigned.<br>
-    These will override the default values. Leave blank to use the defaults.<br>
+    <div>
+      <div>Your key: <div id=key class=key>" . $filekey . "</div></div>
+      <div>Copy this key. Should you be unable to download the archive in the final step this can be used to recover it. You should also include this when reporting bugs.</div>
+      <div>Now you may overview the id's that were found in the configs you provided.<br>
+    You may tick the box before any id to lock it. This will exclude this option from being assigned a new id in the next step as well as exclude the same id from the assigning process.</div>
+      <div>Here you may specify the starting values at which block and item id's will start being assigned.<br>
+    These will override the default values. Leave blank to use the defaults.</div>
+    
+    <div class=divider></div>
+    
     <form action='#fromAnalysis' method=post>
-    <input type=text size=40 name=startblock placeholder='Starting block ID (Default: $startblock)' />
-    <input type=text size=40 name=startitem placeholder='Starting item ID (Default: $startitem)' /><br>
-    <input class=button type='submit' value='Next' />
-    <div id=messages class=noteBox>";
+    <input type=hidden name=standard value='" . $_POST['standard'] . "'></input>
+    <input type=hidden name=pending value='" . $_POST['pending'] . "'></input>
+    <input type=hidden name=transmit value='" . $_POST['transmit'] . "'></input>
+    <div>
+      <div>Global Options:</div>
+    </div>
+    <div>
+      <div>
+        <div class='inline' style='width: 200px;'>Starting block ID:</div>
+        <div class='inline'><input type=text size=20 name=startblock placeholder='Starting block ID' value='$startblock'></input></div>
+      </div>
+      <div>
+        <div class='inline' style='width: 200px;'>Starting item ID:</div>
+        <div class='inline'><input type=text size=20 name=startitem placeholder='Starting item ID' value='$startitem'></input></div>
+      </div>
+    </div>
+    <div>
+      <div class='inline' style='width: 200px;'>Mod Spacing Blocks:</div>
+      <div class='inline'><input type=text size=20 name=spacing-blocks placeholder='Mod Block Id spacing' value='$spaceblock'></input></div>
+    </div>
+    <div>
+      <div class='inline' style='width: 200px;'>Mod Spacing Items:</div>
+      <div class='inline'><input type=text size=20 name=spacing-items placeholder='Mod Item Id spacing' value='$spaceitem'></input></div>
+    </div>
+    <div><input class=button type='submit' value='Next'></input></div>
+    <div id=logContainer style='border: 1px solid gray;'>
+      <div id=logHeader class=pnt style='border-bottom: 1px solid lightgray' onClick='toggleHidden(document.getElementById(\"log\"), null); togglePlusMinusIcon(\"toggleButtonLog\");'><div class=toggleButton id='toggleButtonLog'>+</div>Log</div>
+      <div id=log>";
    
     unset($levels);
     $entries = myReadDir($dirpath, $search, null, null, 0, $debug);
@@ -155,6 +248,9 @@
     {
       $compat = $compat_form[$config[$configKey]['path']];
       
+      $path = $configValue['path'];
+      $dispPath = "<div class='inline path'>" . $path . "</div>";
+      
       $skip = 0;
       if ($debug > 0) echo "<div>[Debug]Reading file " . $configValue['fullpath'] . "</div>";
       $filepath = $configValue['fullpath'];
@@ -162,7 +258,7 @@
       $contents = myReadFile($filepath);
       if (!$contents)
       {
-        echo "<div class=note>[Note]File " . $configValue['path'] . " is empty! Skipping!</div>";
+        echo "<div class=note>[Note]File " . $dispPath . " is empty! Skipping!</div>";
         unset($config[$configKey]);
         $skip = 1;
       }
@@ -190,34 +286,39 @@
         
         if ($config[$configKey]['idCounter'] == 0)
         {
-          echo "<div class=warning>[Warning]No id's could be found in " . $configValue['path'] . ". Either there are none, or it contains config blocks with non-standard names! This file probably need a compatibility file!</div>";
+          echo "<div class=warning>[Warning]No id's could be found in " . $dispPath . ". Either there are none, or it contains config blocks with non-standard names! This file probably needs compatibility data!</div>";
           $counter_warnings++;
         }
         elseif ($config[$configKey]['idCounter'] == -1)
         {
-          echo "<div class=note>[Note]" . $config[$configKey]['path'] . " has no id's according to compat file.</div>";
+          echo "<div class=note>[Note]" . $dispPath . " has no id's according to compat file.</div>";
           $counter_notes++;
         }
         elseif ($config[$configKey]['idCounter'] == -2)
         {
-          echo "<div class=error>[Error]" . $config[$configKey]['path'] . " is known to contain id's but is not supported at the moment and will be ignored!.</div>";
+          echo "<div class=error>[Error]" . $dispPath . " is known to contain id's but is not supported at the moment and will be ignored!.</div>";
           $counter_errors++;
         }
         else
         {
-          echo "<div class=highNote>[Note]Found " . $config[$configKey]['idCounter'] . " id's in " . $config[$configKey]['path'] . "</div>";
-          $counter_notes++;
+          echo "<div class=okay>[Okay]Found " . $config[$configKey]['idCounter'] . " id's in " . $dispPath . "</div>";
+          $counter_okays++;
         }
       }
     }
     
-    echo "</div><script>toggleHidden(document.getElementById('messages'), null);</script>"; #end of id=messages
+    echo "</div><script>toggleHidden(document.getElementById('log'), null);</script>"; #end of id=messages
     
-    echo "<div class=pnt onClick='toggleHidden(document.getElementById(\"messages\"), null);'>[ ";
+    echo "<div class=pnt onClick='toggleHidden(document.getElementById(\"log\"), null);'>[ ";
+    if ($counter_okays >= 1) echo "<div class='okay inline'>$counter_okays Okay</div>, ";
     if ($counter_notes >= 1) echo "$counter_notes notes, ";
     if ($counter_warnings >= 1) echo "<o>$counter_warnings warnings</o>, ";
     if ($counter_errors >= 1) echo "<r>$counter_errors errors</r>";
     echo " ] <div class='note inline'>Click to show/hide</div></div>";
+    
+    echo "</div>";
+    
+    echo "<div class=divider></div>";
     
     foreach ($config as $configValue)
     {
@@ -231,15 +332,15 @@
     
     $ranges = getRanges($used_id_ranges);
     
-    echo "<div class=used_ids>
-    <div class='inline pnt' onClick='toggleHidden(document.getElementById(\"used_ids\"), null)'> [ Used Ids ]</div>
-    <div class='inline note pnt' onClick='toggleHidden(document.getElementById(\"used_ids\"), null)'> - Click to show</div>
-    <div id=used_ids>";
+    echo "<div class='used_ids pnt' onClick='toggleHidden(document.getElementById(\"used_ids\"), null)'>
+    <div class='inline'> [ Used Ids ]</div>
+      <div class='inline note'> - Click to show</div>
+      <div id=used_ids>";
     foreach ($ranges as $arrayValue)
     {
       if (is_array($arrayValue))
       {
-        $ids_in_range = $arrayValue['end'] - $arrayValue['start'];
+        $ids_in_range = $arrayValue['end'] - $arrayValue['start'] + 1;
         $total_ids += $ids_in_range;
         echo "<div class=option>" . $arrayValue['start'] . " - " . $arrayValue['end'] . " (" . $ids_in_range . ")</div>";
       }
@@ -249,9 +350,11 @@
         echo "<div class=option>" . $arrayValue . "</div>";
       }
     }
-    echo "</div>";
-    echo "<div class=pnt onClick='toggleHidden(document.getElementById(\"used_ids\"), null)'>Total: $total_ids</div>";
-    echo "</div><script>toggleHidden(document.getElementById(\"used_ids\"), null)</script>";
+    echo "
+      </div>
+      <div>Total: $total_ids</div>
+    </div>
+    <script>toggleHidden(document.getElementById(\"used_ids\"), null)</script>";
     
     echo "<div class=divider></div>";
     
@@ -265,13 +368,6 @@
     #myVarDump($used_ids);
     
     #echo "<div class=divider></div>";
-    
-    $_SESSION['debug'] = $debug;
-    $_SESSION['config'] = $config;
-    $_SESSION['filekey'] = $filekey;
-    
-    $_SESSION['startblock'] = $startblock;
-    $_SESSION['startitem'] = $startitem;
     
     $title_counter = 1;
     $value_counter = 1;

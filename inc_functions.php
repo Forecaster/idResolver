@@ -105,8 +105,11 @@ function myReadDir($dirpath, $searchfor, $ignore, $subdir, $level, $debug) #max 
 {
   global $indent, $levels;
   
-  if (!isset($dirpath))
+  if (!isset($dirpath) || !isset($searchfor))
     return false;
+  
+  if (!isset($level))
+    $level = 0;
   
   if (isset($subdir)) $indent = $indent + 1;
   if ($debug > 0) echo "<div class=functionOutput>";
@@ -154,7 +157,7 @@ function myReadDir($dirpath, $searchfor, $ignore, $subdir, $level, $debug) #max 
             }
             
             if ($debug >= 2) echo "<div style='text-indent: " . ($indent * 10) . "px;'>[Debug][myReadDir]Current level: $level</div>";
-            $levels["$level"] = $levels["$level"] +1;
+            $levels[$level] += 1;
           }
           elseif (!stristr($entry, $value) && $debug >= 2)
           {
@@ -326,7 +329,7 @@ function extractValues($filename, $contents, $compat, $debug) #max debug 4
         if (isset($id) && is_numeric($id) && $id > 0)
         {
           $configValues[$counter]['type'] = $type;
-          $configValues[$counter]['id'] = $key;
+          $configValues[$counter]['id'] = str_replace('I:', '', $key);
           
           if ($type == "item")
           {

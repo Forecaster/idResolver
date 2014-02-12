@@ -1,4 +1,6 @@
 <?php
+$securitytoken = "alphaspacepie";
+
 require_once "inc_functions.php";
 require_once "inc_connect.php";
 $fileSizeLimit = 2097152;
@@ -17,8 +19,7 @@ $search[] = ".cfg";
 $search[] = ".conf";
 $search[] = ".txt";
 
-/*
-{ ### READ COMPAT FILES
+/*{ ### READ COMPAT FILES
 $compatEntries = myReadDir('compat/', $search, null, null, 0, ($debug -4));
 
 foreach ($compatEntries as $compatEntriesKey => $compatEntriesValue)
@@ -85,6 +86,9 @@ $reservedVanillaItems = array(256,257,258,259,260,261,262,263,264,265,266,267,26
 $startblock = 600;
 $startitem = 4096;
 
+$spaceblock = 25;
+$spaceitem = 256;
+
 $maxBlock = 4095;
 $maxItem = 31999;
 
@@ -99,6 +103,8 @@ $indent = 0;
 
 <body>
 
+<div style='z-index: 10; position: fixed; left: 0px; top: 0px; background-color: red; color: black; width: 100%; font-size: 24pt; font-weight: bold;'>This is a beta that is being actively worked on! It may randomly break or not work correctly! It should not be used other than for testing! -Forecaster</div>
+<div style='height: 80px;'></div>
 <div class=title>
   <div class=inline><img id=logo src='logo50x50.png' onMouseOver='document.getElementById("title").innerHTML="Spacepie!"; document.getElementById("logo").src="spacepie.png";' onMouseOut='document.getElementById("title").innerHTML="The Minecraft ID Resolver"; document.getElementById("logo").src="logo50x50.png";'></img></div>
   <div id=title style='cursor: default;' class=inline>The Minecraft ID Resolver</div>
@@ -135,8 +141,11 @@ $indent = 0;
     $filekey = $_POST['key'];
   else
     $filekey = null;
-  #elseif (isset($_SESSION['filekey']))
-    #$filekey = $_SESSION['filekey'];
+  
+  if (isset($_SESSION['temp_compat']))
+    $temp_compat = $_SESSION['temp_compat'];
+  else
+    $temp_compat = null;
 
 $step = $_POST['step'];
 if (!isset($step) || $step == 'mode')
@@ -160,6 +169,7 @@ if ($step == 'download')
   
   $_SESSION['config'] = $config;
   $_SESSION['debug'] = $debug;
+  $_SESSION['temp_compat'] = $temp_compat;
   
   if ($filekey != "demo")
     $_SESSION['filekey'] = $filekey;

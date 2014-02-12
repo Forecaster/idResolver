@@ -7,6 +7,11 @@
     <title>ID Resolver - Compatibility</title>
   </head>";
   
+  if (isset($_POST['transmit']))
+    $transmit = $_POST['transmit'];
+  else
+    $transmit = 0;
+  
   if (isset($_POST['resubmit']))
   {
     $resubmit = $_POST['resubmit'] + 1;
@@ -107,6 +112,9 @@
     unset($config);
     $entries = myReadDir($dirpath, $search, array(null), null, 0, $debug);
     
+    if (!$entries)
+      die("<div>Critical Error!</div>");
+    
     asort($entries);
     
     #myVarDump($levels);
@@ -125,16 +133,39 @@
     foreach ($config as $configKey => $configValue)
     {
       $path = $configValue['path'];
+      $dispPath = "<div class='inline path'>" . $path . "</div>";
       
-      if ($resubmit > 0)
-      unset($compat_data_result);
-      unset($compat_data);
-      $query = "SELECT * FROM compatibility WHERE path='" . mysqli_real_escape_string($con, $path) . "'";
-      $compat_data_result = mysqli_query($con, $query);
-      if ($compat_data_result !== false)
-        $compat_data = mysqli_fetch_array($compat_data_result);
+      #if ($resubmit > 0)
+      if ($_POST['standard'] == 1)
+      {
+        unset($compat_data_result);
+        unset($compat_data);
+        $query = "SELECT * FROM compatibility WHERE filepath='" . mysqli_real_escape_string($con, $path) . "'";
+        $compat_data_result = mysqli_query($con, $query);
+        if ($compat_data_result !== false)
+          $compat_data = mysqli_fetch_array($compat_data_result);
+        else
+          die("Error in Standard: " . mysqli_error($con));
+      }
+      
+      if ($_POST['pending'] == 1)
+      {
+        unset($compat_data_result_secondary);
+        unset($compat_data_secondary);
+        $query = "SELECT * FROM compatibility_pending WHERE filepath='" . mysqli_real_escape_string($con, $path) . "'";
+        $compat_data_result_secondary = mysqli_query($con, $query);
+        if ($compat_data_result_secondary !== false)
+          $compat_data_secondary = mysqli_fetch_array($compat_data_result_secondary);
+        else
+          die("Error in Pending: " . mysqli_error($con));
+      }
+        
+      if ($compat_data != null && $compat_data !== false)
+        $compatData = true;
+      elseif ($compat_data_secondary != null && $compat_data_secondary !== false)
+        $compatData = true;
       else
-        die(mysqli_error($con));
+        $compatData = false;
       
       $skip = 0;
       if ($debug > 0) echo "<div>[Debug]Reading file " . $configValue['fullpath'] . "</div>";
@@ -143,7 +174,7 @@
       $contents = myReadFile($filepath);
       if (!$contents)
       {
-        echo "<div class=note>[Note]File " . $path . " is empty! Skipping!</div>";
+        echo "<div class=note>[Note]File " . $dispPath . " is empty! Skipping!</div>";
         unset($config[$configKey]);
         $skip = 1;
       }
@@ -156,17 +187,6 @@
         
         if ($debug > 0) echo "<div>[Debug][inc_step_compat]Reading file " . $configValue['name'] . ":</div>";
         
-        if (strtolower($compat_data['preshifted']) == 1)
-        {
-          if ($debug > 0) echo "<div>[Debug][inc_step_compat]" . $configValue['name'] . " is pre-shifted</div>";
-          $config[$configKey]['preshifted'] = 'yes';
-        }
-        else
-        {
-          if ($debug > 0) echo "<div>[Debug][inc_step_compat]Ignored shift on " . $configValue['name'] . "</div>";
-          $config[$configKey]['preshifted'] = 'no';
-        }
-        
         if ($resubmit == 0)
           $compat = null;
         elseif ($resubmit > 0)
@@ -176,22 +196,30 @@
         
         if ($config[$configKey]['idCounter'] == 0)
         {
-          echo "<div class=warning>[Warning]No id's could be found in " . $path . ". Either there are none, or it contains config blocks with non-standard names! This file probably need a compatibility file!</div>";
-          $counter_warnings++;
+          if ($compatData === false)
+          {
+            echo "<div class=warning>[Warning]No id's could be found in $dispPath. Either there are none, or it contains config blocks with non-standard names! This file probably need a compatibility file!</div>";
+            $counter_warnings++;
+          }
+          else
+          {
+            echo "<div class=note>[Okay]No ids could be found in $dispPath. But compatibility data was found for this file.</div>";
+            $counter_notes++;
+          }
         }
         elseif ($config[$configKey]['idCounter'] == -1)
         {
-          echo "<div class=note>[Note]" . $config[$configKey]['path'] . " has no id's according to compat file.</div>";
+          echo "<div class=note>[Note]$dispPath has no ids according to compatibility data.</div>";
           $counter_notes++;
         }
         elseif ($config[$configKey]['idCounter'] == -2)
         {
-          echo "<div class=error>[Error]" . $config[$configKey]['path'] . " is known to contain id's but is not supported at the moment and will be ignored!.</div>";
+          echo "<div class=error>[Error]$dispPath has been marked as incompatible by compatibility data.</div>";
           $counter_errors++;
         }
         else
         {
-          echo "<div class=highNote>[Note]Found " . $config[$configKey]['idCounter'] . " id's in " . $config[$configKey]['path'] . "</div>";
+          echo "<div class=okay>[Note]Found <div class='inline warning'>" . $config[$configKey]['idCounter'] . "</div> id's in " . $dispPath . "</div>";
           $counter_notes++;
         }
       }
@@ -212,7 +240,10 @@
     <form action='#fromCompat' method=post>
     <input type=hidden name=step id=step value='analysis'></input>
     <input type=hidden name=key value='$filekey'></input>
-    <input type=hidden name=resubmit value='$resubmit'></input>";
+    <input type=hidden name=transmit value='$transmit'></input>
+    <input type=hidden name=resubmit value='$resubmit'></input>
+    <input type=hidden name=standard value='" . $_POST['standard'] . "'></input>
+    <input type=hidden name=pending value='" . $_POST['pending'] . "'></input>";
     
     foreach ($config as $configKey => $configValue)
     {
@@ -227,58 +258,84 @@
       
       if ($resubmit == 0)
       {
-        unset($compat_data_result);
-        unset($compat_data);
-        $compatTarget = ltrim(str_replace('config/', '', $path), '/');
-        $query = "SELECT * FROM compatibility WHERE path='" . mysqli_real_escape_string($con, $compatTarget) . "'";
-        $compat_data_result = mysqli_query($con, $query);
+        if ($_POST['standard'] == 1)
+        {
+          unset($compat_data_result);
+          unset($compat_data);
+          $query = "SELECT * FROM compatibility WHERE filepath='" . mysqli_real_escape_string($con, $path) . "'";
+          $compat_data_result = mysqli_query($con, $query);
+          if ($compat_data_result !== false)
+            $compat_data = mysqli_fetch_array($compat_data_result);
+          else
+            die(mysqli_error($con));
+        }
         
-        if ($compat_data_result !== false)
-          $compat_data = mysqli_fetch_array($compat_data_result);
-        else
-          die(mysqli_error($con));
+        if ($_POST['pending'] == 1)
+        {
+          unset($compat_data_result_secondary);
+          unset($compat_data_secondary);
+          $query = "SELECT * FROM compatibility_pending WHERE filepath='" . mysqli_real_escape_string($con, $path) . "'";
+          $compat_data_result_secondary = mysqli_query($con, $query);
+          if ($compat_data_result_secondary !== false)
+            $compat_data_secondary = mysqli_fetch_array($compat_data_result_secondary);
+          else
+            die(mysqli_error($con));
+        }
         
         if ($compat_data != null && $compat_data !== false)
-          $compatFile = true;
+          $compatData = true;
+        elseif ($compat_data_secondary != null && $compat_data_secondary !== false)
+          $compatData = true;
         else
-          $compatFile = false;
+          $compatData = false;
           
         ##compat stuff
         
         if ($compat_data['blockCategories'] != null)
           $blockCategories = $compat_data['blockCategories'];
+        elseif ($compat_data_secondary['blockCategories'] != null)
+          $blockCategories = $compat_data_secondary['blockCategories'];
         
         if ($compat_data['itemCategories'] != null)
           $itemCategories = $compat_data['itemCategories'];
+        elseif ($compat_data_secondary['itemCategories'] != null)
+          $itemCategories = $compat_data_secondary['itemCategories'];
         
         if ($compat_data['blocks'] != null)
           $blocks = $compat_data['blocks'];
+        elseif ($compat_data_secondary['blocks'] != null)
+          $blocks = $compat_data_secondary['blocks'];
         
         if ($compat_data['items'] != null)
           $items = $compat_data['items'];
+        elseif ($compat_data_secondary['items'] != null)
+          $items = $compat_data_secondary['items'];
         
         if ($compat_data['ranges'] != null)
           $ranges = $compat_data['ranges'];
+        elseif ($compat_data_secondary['ranges'] != null)
+          $ranges = $compat_data_secondary['ranges'];
         
         if ($compat_data['preshifted'] == 1)
+          $preshifted = "checked";
+        elseif ($compat_data_secondary['preshifted'] == 1)
           $preshifted = "checked";
         else
           $preshifted = "";
         
         if ($compat_data['noids'] == 1)
           $noids = "checked";
+        elseif ($compat_data_secondary['noids'] == 1)
+          $noids = "checked";
         else
           $noids = "";
         
         if ($compat_data['incompatible'] == 1)
           $incompatible = "checked";
+        if ($compat_data_secondary['incompatible'] == 1)
+          $incompatible = "checked";
         else
           $incompatible = "";
-          
-        if ($compat_data['ignore'] == 1)
-          $ignore = "checked";
-        else
-          $ignore = "";
       }
       elseif ($resubmit > 0)
       {
@@ -311,11 +368,6 @@
           $incompatible = "checked";
         else
           $incompatible = "";
-          
-        if ($compat_form[$path]['ignore'] != null)
-          $ignore = "checked";
-        else
-          $ignore = "";
       }
       
       /*
@@ -334,10 +386,6 @@
           {
             $message = "<div class=warning>According to compatibility data this file has no id's, yet we found $ids $suffix here! You may want to make sure these are not actual block/item ids!</div>";
           }
-          elseif ($compat_data['ignore'] == 1)
-          {
-            $message = "<div class=warning>According to compatability data this file is to be ignored, yet we found $ids $suffix here! You may want to make sure these are not actual block/item ids!</div>";
-          }
           elseif ($compat_data['incompatible'] == 1)
           {
             $message = "<div class=warning>According to compatability data this file is incompatible, yet we found $ids $suffix here! You may want to make sure these are not actual block/item ids!</div>";
@@ -349,7 +397,7 @@
         }
         else
         {
-          if ($compatFile == true)
+          if ($compatData == true)
           {
             $message = "<div class=okay>We found no id's in this file, but compatibility data was found and the available definitions were entered below. This will probably help us find the right id's in the next step if there are any.</div>";
           }
@@ -368,21 +416,15 @@
           
           if ($compat_form[$path]['noids'] != null)
             $message = "<div class=warning>According to compatibility data this file has no id's, yet we found $ids $suffix here! You may want to make sure these are not actual block/item ids!</div>";
-          elseif ($compat_form[$path]['ignore'] != null)
-            $message = "<div class=warning>According to compatibility data this file is to be ignored, yet we found $ids $suffix here! You may want to make sure these are not actual block/item ids!</div>";
           elseif ($compat_form[$path]['incompatible'] != null)
             $message = "<div class=warning>According to compatibility data this file is incompatible, yet we found $ids $suffix here! You may want to make sure these are not actual block/item ids!</div>";
           else
             $message = "<div class=okay>Found <div class='warning inline'>$ids</div> $suffix here. This is probably fine but you still might want to make sure it's not too few or too many and that they are actual block/item ids.</div>";
-          
-            
         }
         else
         {
           if ($compat_form[$path]['noids'] != null)
             $message = "<div class=note>According to compatibility data this file has no id's.</div>";
-          elseif ($compat_form[$path]['ignore'] != null)
-            $message = "<div class=note>According to compatibility data this file is to be ignored.</div>";
           elseif ($compat_form[$path]['incompatible'] != null)
             $message = "<div class=note>According to compatibility data this file is incompatible.</div>";
           elseif ($compat_form[$path]['blockCategories'] != null || $compat_form[$path]['itemCategories'] != null || $compat_form[$path]['blocks'] != null || $compat_form[$path]['items'] != null)
@@ -438,104 +480,125 @@
       <div style='border: 1px dotted gray;'>
         <div class=pnt onClick='toggleHidden(document.getElementById(\"" . $path . "_customDefinitions\"), null); togglePlusMinusIcon(\"" . $path . "_togglebuttonCompat\")'><div class=toggleButton id='" . $path . "_togglebuttonCompat'>+</div>Compatibility Definitions:</div>
         <div id='" . $path . "_customDefinitions'>
-        
-          <div class=lftmrgn id='" . $path . "_noids_root' onMouseOver='document.getElementById(\"" . $path . "_desc_noids\").className=\"desc\";' onMouseOut='document.getElementById(\"" . $path . "_desc_noids\").className=\"descFaded\";'>
-            <div class='inline'><input type=checkbox value=1 name='" . formNameEncode($path) . ":noids' $noids id='" . $path . "_noids' onClick='document.getElementById(\"" . $path . "_noids_root\").className=\"lftmrgn\";'></input><label for='" . $path . "_noids'>No Ids</label></div>
-            <div class=descFaded id='" . $path . "_desc_noids'> - For files that do not contain any block or item ids.</div>
-          </div>
+          <div style='display: table-cell;'>
           
-          <div class=lftmrgn onMouseOver='document.getElementById(\"" . $path . "_desc_incompatible\").className=\"desc\";' onMouseOut='document.getElementById(\"" . $path . "_desc_incompatible\").className=\"descFaded\";'>
-            <div class='inline'><input type=checkbox value=1 name='" . formNameEncode($path) . ":incompatible' $incompatible id='" . $path . "_incompatible'></input><label for='" . $path . "_incompatible'>Incompatible</label></div>
-            <div class=descFaded id='" . $path . "_desc_incompatible'> - For files that do contain ids but use a format that is incompatible with the resolver.</div>
-          </div>
-          
-          <div class=lftmrgn onMouseOver='document.getElementById(\"" . $path . "_desc_ignore\").className=\"desc\";' onMouseOut='document.getElementById(\"" . $path . "_desc_ignore\").className=\"descFaded\";'>
-            <div class='inline'><input type=checkbox value=1 name='" . formNameEncode($path) . ":ignore' $ignore id='" . $path . "_ignore'></input><label for='" . $path . "_ignore'>Ignore</label></div>
-            <div class=descFaded id='" . $path . "_desc_ignore'> - For files that need to be ignored for other reasons.</div>
-          </div>
-          
-          <div class=lftmrgn onMouseOver='document.getElementById(\"" . $path . "_desc_preshifted\").className=\"desc\";' onMouseOut='document.getElementById(\"" . $path . "_desc_preshifted\").className=\"descFaded\";'>
-            <div class='inline'><input type=checkbox value=1 name='" . formNameEncode($path) . ":preshifted' value=1 id='" . $path . "_preshifted' $preshifted></input><label for='" . $path . "_preshifted'>Pre-shifted</label></div>
-            <div class=descFaded id='" . $path . "_desc_preshifted'> - For files that use pre-shifted item ids. This will tell the resolver so that it can compensate.</div>
-          </div>
-          
-          <div class='lftmrgn topmrgn'>
-            <div class=inputBox style='opacity: 0.55;' onMouseOver='this.style.opacity=\"1.0\"; document.getElementById(\"" . $path . "_desc_blockCat\").style.opacity=\"1.0\";' onMouseOut='this.style.opacity=\"0.55\"; document.getElementById(\"" . $path . "_desc_blockCat\").style.opacity=\"0.55\";'>
-              <div>
-                <div class=inline>Block categories:</div><div class='tiny inline pnt lftmrgn' onClick='clearCompatabilityDefinition(\"" . $path . "_blockCategories\")'>Clear</div>
+            <div class=lftmrgn onMouseOut='document.getElementById(\"" . $path . "_button_noids\").style.opacity=0.55; document.getElementById(\"" . $path . "_desc_noids\").style.visibility=\"collapse\";' onMouseOver='document.getElementById(\"" . $path . "_button_noids\").style.opacity=1; document.getElementById(\"" . $path . "_desc_noids\").style.visibility=\"visible\";'>
+              <div class='inline' id='" . $path . "_button_noids' style='opacity: 0.55;'>
+                <input type=checkbox value=1 name='" . formNameEncode($path) . ":noids' $noids id='" . $path . "_noids' onClick='document.getElementById(\"" . $path . "_noids_root\").className=\"lftmrgn\";'></input>
+                <label for='" . $path . "_noids'>No Ids</label>
               </div>
-              <div>
-                <textarea class=compat name='" . formNameEncode($path) . ":blockCategories' id='" . $path . "_blockCategories' onClick='noidsWarning(\"$path\");'>" . htmlspecialchars($blockCategories) . "</textarea>
+              <div class=descriptionBox id='" . $path . "_desc_noids'>
+                For files that do not contain any block or item ids.
               </div>
             </div>
-            <div class=descriptionBox style='opacity: 0.55;' id='" . $path . "_desc_blockCat'>The standard block category begins with the line \"Blocks {\". Some mods use other names for them, like \"BlockIds {\". A block category may only contain block ids. If a category has both block and item ids they need to be defined individually. When adding definitions you should, if possible, include the \"{\" symbol if it is on the same line as the category name. Each category is separated by a new line.</div>
-          </div>
-          
-          <div class='lftmrgn topmrgn'>
-            <div class=inputBox style='opacity: 0.55;' onMouseOver='this.style.opacity=\"1.0\"; document.getElementById(\"" . $path . "_desc_itemCat\").style.opacity=\"1.0\";' onMouseOut='this.style.opacity=\"0.55\"; document.getElementById(\"" . $path . "_desc_itemCat\").style.opacity=\"0.55\";'>
-              <div>
-                <div class=inline>Item categories:</div><div class='tiny inline pnt lftmrgn' onClick='clearCompatabilityDefinition(\"" . $path . "_itemCategories\")'>Clear</div>
+            
+            <div class=lftmrgn onMouseOut='document.getElementById(\"" . $path . "_button_incompatible\").style.opacity=0.55; document.getElementById(\"" . $path . "_desc_incompatible\").style.visibility=\"collapse\";' onMouseOver='document.getElementById(\"" . $path . "_button_incompatible\").style.opacity=1; document.getElementById(\"" . $path . "_desc_incompatible\").style.visibility=\"visible\";'>
+              <div class='inline' id='" . $path . "_button_incompatible' style='opacity: 0.55;'>
+                <input type=checkbox value=1 name='" . formNameEncode($path) . ":incompatible' $incompatible id='" . $path . "_incompatible'></input>
+                <label for='" . $path . "_incompatible'>Incompatible</label>
               </div>
-              <div>
-                <textarea class=compat name='" . formNameEncode($path) . ":itemCategories' id='" . $path . "_itemCategories' onClick='noidsWarning(\"$path\");'>" . htmlspecialchars($itemCategories) . "</textarea>
+              <div class=descriptionBox id='" . $path . "_desc_incompatible'>
+                For files that do contain ids but use a format that is incompatible with the resolver.
               </div>
             </div>
-            <div class=descriptionBox style='opacity: 0.55;' id='" . $path . "_desc_itemCat'>The standard item category begins with the line \"Items {\". Some mods use other names for them, like \"ItemIds {\". An item category may only contain item ids. If a category has both block and item ids they need to be defined individually. When adding definitions you should, if possible, include the \"{\" symbol if it is on the same line as the category name. Each category is separated by a new line.</div>
-          </div>
-          
-          <div class='lftmrgn topmrgn'>
-            <div class=inputBox style='opacity: 0.55;' onMouseOver='this.style.opacity=\"1.0\"; document.getElementById(\"" . $path . "_desc_blocks\").style.opacity=\"1.0\";' onMouseOut='this.style.opacity=\"0.55\"; document.getElementById(\"" . $path . "_desc_blocks\").style.opacity=\"0.55\";'>
-              <div>
-                <div class=inline>Blocks:</div><div class='tiny inline pnt lftmrgn' onClick='clearCompatabilityDefinition(\"" . $path . "_blocks\")'>Clear</div>
+            
+            <div class=lftmrgn onMouseOut='document.getElementById(\"" . $path . "_button_preshifted\").style.opacity=0.55; document.getElementById(\"" . $path . "_desc_preshifted\").style.visibility=\"collapse\";' onMouseOver='document.getElementById(\"" . $path . "_button_preshifted\").style.opacity=1; document.getElementById(\"" . $path . "_desc_preshifted\").style.visibility=\"visible\";'>
+              <div class='inline' id='" . $path . "_button_preshifted' style='opacity: 0.55;'>
+                <input type=checkbox value=1 name='" . formNameEncode($path) . ":preshifted' value=1 id='" . $path . "_preshifted' $preshifted></input>
+                <label for='" . $path . "_preshifted'>Pre-shifted</label>
               </div>
-              <div>
-                <textarea class=compat name='" . formNameEncode($path) . ":blocks' id='" . $path . "_blocks' style='height: 75px; width: 300px;' onClick='noidsWarning(\"$path\");'>" . htmlspecialchars($blocks) . "</textarea>
+              <div class=descriptionBox id='" . $path . "_desc_preshifted'>
+                For files that use pre-shifted item ids. This will tell the resolver so that it can compensate.
               </div>
             </div>
-            <div class=descriptionBox style='opacity: 0.55;' id='" . $path . "_desc_blocks'>This is used for defining individual block ids, like \"idBlockShellConstructor\" from Sync. The definition should contain everything before the \"=\" sign and after the \"I:\" (if present). Each definition is separated by a new line.</div>
-          </div>
-          
-          <div class='lftmrgn topmrgn'>
-            <div class=inputBox style='opacity: 0.55;' onMouseOver='this.style.opacity=\"1.0\"; document.getElementById(\"" . $path . "_desc_items\").style.opacity=\"1.0\";' onMouseOut='this.style.opacity=\"0.55\"; document.getElementById(\"" . $path . "_desc_items\").style.opacity=\"0.55\";'>
-              <div>
-                <div class=inline>Items:</div><div class='tiny inline pnt lftmrgn' onClick='clearCompatabilityDefinition(\"" . $path . "_items\")'>Clear</div>
+            
+            <div class='lftmrgn topmrgn' onMouseOver='document.getElementById(\"" . $path . "_button_blockCat\").style.opacity=1; document.getElementById(\"" . $path . "_desc_blockCat\").style.visibility=\"visible\";' onMouseOut='document.getElementById(\"" . $path . "_button_blockCat\").style.opacity=0.55; document.getElementById(\"" . $path . "_desc_blockCat\").style.visibility=\"collapse\";'>
+              <div class=inputBox style='opacity: 0.55;' id='" . $path . "_button_blockCat'>
+                <div>
+                  <div class=inline>Block categories:</div><div class='tiny inline pnt lftmrgn' onClick='clearCompatabilityDefinition(\"" . $path . "_blockCategories\")'>Clear</div>
+                </div>
+                <div>
+                  <textarea class=compat name='" . formNameEncode($path) . ":blockCategories' id='" . $path . "_blockCategories' onClick='noidsWarning(\"$path\");'>" . htmlspecialchars($blockCategories) . "</textarea>
+                </div>
               </div>
-              <div>
-                <textarea class=compat name='" . formNameEncode($path) . ":items' id='" . $path . "_items' onClick='noidsWarning(\"$path\");'>" . htmlspecialchars($items) . "</textarea>
-              </div>
-            </div>
-            <div class=descriptionBox style='opacity: 0.55;' id='" . $path . "_desc_items'>This is used for defining individual item ids, like \"idItemSyncCore\" from Sync. The definition should contain everything before the \"=\" sign and after the \"I:\" (if present). Each definition is separated by a new line.</div>
-          </div>
-          
-          <div class='lftmrgn topmrgn'>
-            <div class=inputBox style='opacity: 0.55;' onMouseOver='this.style.opacity=\"1.0\"; document.getElementById(\"" . $path . "_desc_ranges\").style.opacity=\"1.0\";' onMouseOut='this.style.opacity=\"0.55\"; document.getElementById(\"" . $path . "_desc_ranges\").style.opacity=\"0.55\";'>
-              <div>
-                <div class=inline>Ranges:</div><div class='tiny inline pnt lftmrgn' onClick='clearCompatabilityDefinition(\"" . $path . "_ranges\")'>Clear</div>
-              </div>
-              <div>
-                <textarea class=compat name='" . formNameEncode($path) . ":ranges' id='" . $path . "_ranges' onClick='noidsWarning(\"$path\");'>" . htmlspecialchars($ranges) . "</textarea>
+              <div class=descriptionBox id='" . $path . "_desc_blockCat'>
+                The standard block category begins with the line \"blocks {\". Some mods use other names for them, like \"blockIds {\". A block category may only contain block ids. If a category has both block and item ids they need to be defined individually. When adding definitions you should, if possible, include the \"{\" symbol if it is on the same line as the category name. Each category is separated by a new line.
               </div>
             </div>
-            <div class=descriptionBox style='opacity: 0.55;' id='" . $path . "_desc_ranges'>This is used for mods that use a single item in the config for multiple ids, where you define one id and it will then use that plus the following x number of ids. This is defined using the block/item name followed by : and then the total number of ids that will be occupied, including the starting id.</div>
+            
+            <div class='lftmrgn topmrgn' onMouseOver='document.getElementById(\"" . $path . "_button_itemCat\").style.opacity=1; document.getElementById(\"" . $path . "_desc_itemCat\").style.visibility=\"visible\";' onMouseOut='document.getElementById(\"" . $path . "_button_itemCat\").style.opacity=0.55; document.getElementById(\"" . $path . "_desc_itemCat\").style.visibility=\"collapse\";'>
+              <div class=inputBox style='opacity: 0.55;' id='" . $path . "_button_itemCat'>
+                <div>
+                  <div class=inline>Item categories:</div><div class='tiny inline pnt lftmrgn' onClick='clearCompatabilityDefinition(\"" . $path . "_itemCategories\")'>Clear</div>
+                </div>
+                <div>
+                  <textarea class=compat name='" . formNameEncode($path) . ":itemCategories' id='" . $path . "_itemCategories' onClick='noidsWarning(\"$path\");'>" . htmlspecialchars($itemCategories) . "</textarea>
+                </div>
+              </div>
+              <div class=descriptionBox id='" . $path . "_desc_itemCat'>
+                The standard item category begins with the line \"items {\". Some mods use other names for them, like \"itemIds {\". An item category may only contain item ids. If a category has both block and item ids they need to be defined individually. When adding definitions you should, if possible, include the \"{\" symbol if it is on the same line as the category name. Each category is separated by a new line.
+              </div>
+            </div>
+            
+            <div class='lftmrgn topmrgn' onMouseOver='document.getElementById(\"" . $path . "_button_blocks\").style.opacity=1; document.getElementById(\"" . $path . "_desc_blocks\").style.visibility=\"visible\";' onMouseOut='document.getElementById(\"" . $path . "_button_blocks\").style.opacity=0.55; document.getElementById(\"" . $path . "_desc_blocks\").style.visibility=\"collapse\";'>
+              <div class=inputBox style='opacity: 0.55;' id='" . $path . "_button_blocks'>
+                <div>
+                  <div class=inline>Blocks:</div><div class='tiny inline pnt lftmrgn' onClick='clearCompatabilityDefinition(\"" . $path . "_blocks\")'>Clear</div>
+                </div>
+                <div>
+                  <textarea class=compat name='" . formNameEncode($path) . ":blocks' id='" . $path . "_blocks' style='height: 75px; width: 300px;' onClick='noidsWarning(\"$path\");'>" . htmlspecialchars($blocks) . "</textarea>
+                </div>
+              </div>
+              <div class=descriptionBox id='" . $path . "_desc_blocks'>
+                This is used for defining individual block ids, like \"idBlockShellConstructor\" from Sync. The definition should contain everything before the \"=\" sign and after the \"I:\" (if present). Each definition is separated by a new line.
+              </div>
+            </div>
+            
+            <div class='lftmrgn topmrgn' onMouseOver='document.getElementById(\"" . $path . "_button_items\").style.opacity=1; document.getElementById(\"" . $path . "_desc_items\").style.visibility=\"visible\";' onMouseOut='document.getElementById(\"" . $path . "_button_items\").style.opacity=0.55; document.getElementById(\"" . $path . "_desc_items\").style.visibility=\"collapse\";'>
+              <div class=inputBox style='opacity: 0.55;' id='" . $path . "_button_items'>
+                <div>
+                  <div class=inline>Items:</div><div class='tiny inline pnt lftmrgn' onClick='clearCompatabilityDefinition(\"" . $path . "_items\")'>Clear</div>
+                </div>
+                <div>
+                  <textarea class=compat name='" . formNameEncode($path) . ":items' id='" . $path . "_items' onClick='noidsWarning(\"$path\");'>" . htmlspecialchars($items) . "</textarea>
+                </div>
+              </div>
+              <div class=descriptionBox id='" . $path . "_desc_items'>
+                This is used for defining individual item ids, like \"idItemSyncCore\" from Sync. The definition should contain everything before the \"=\" sign and after the \"I:\" (if present). Each definition is separated by a new line.
+              </div>
+            </div>
+            
+            <div class='lftmrgn topmrgn' onMouseOver='document.getElementById(\"" . $path . "_button_ranges\").style.opacity=1; document.getElementById(\"" . $path . "_desc_ranges\").style.visibility=\"visible\";' onMouseOut='document.getElementById(\"" . $path . "_button_ranges\").style.opacity=0.55; document.getElementById(\"" . $path . "_desc_ranges\").style.visibility=\"collapse\";'>
+              <div class=inputBox style='opacity: 0.55;' id='" . $path . "_button_ranges'>
+                <div>
+                  <div class=inline>Ranges:</div><div class='tiny inline pnt lftmrgn' onClick='clearCompatabilityDefinition(\"" . $path . "_ranges\")'>Clear</div>
+                </div>
+                <div>
+                  <textarea class=compat name='" . formNameEncode($path) . ":ranges' id='" . $path . "_ranges' onClick='noidsWarning(\"$path\");'>" . htmlspecialchars($ranges) . "</textarea>
+                </div>
+              </div>
+              <div class=descriptionBox id='" . $path . "_desc_ranges'>
+                This is used for mods that use a single item in the config for multiple ids, where you define one id and it will then use that plus the following x number of ids. This is defined using the block/item name followed by : and then the total number of ids that will be occupied, including the starting id.
+              </div>
+            </div>
+            <div class='pnt lftmrgn' onClick='clearAllCompatabilityDefinitions(\"" . $path . "\")'>Clear All</div>
           </div>
-          <div class='pnt lftmrgn' onClick='clearAllCompatabilityDefinitions(\"" . $path . "\")'>Clear All</div>
+          <div style='display: table-cell; border: 1px dotted gray; width: 100%;'>
+            <div class=pnt onClick='toggleHidden(document.getElementById(\"" . $path . "_content\"), null); togglePlusMinusIcon(\"" . $path . "_togglebuttonContents\")'><div class=toggleButton id='" . $path . "_togglebuttonContents'>+</div>File Contents (For reference):</div>
+            <div id='" . $path . "_content'>
+              <div class='inline pnt tiny' onClick='var thing = document.getElementById(\"" . $path . "_content_box\"); thing.rows=" . (substr_count(nl2br($configValue['contents']), '<br />') +2) . "; thing.style.height=null;'>Maximize</div>
+              <div class='inline pnt tiny' onClick='var thing = document.getElementById(\"" . $path . "_content_box\"); thing.style.height=640;'>Minimize</div>
+              <div><textarea id='" . $path . "_content_box' class=contents readonly style='height: 640px;'>" . htmlspecialchars($configValue['contents']) . "</textarea></div>
+            </div>
+          </div>
         </div>
       </div>
       <div style='height: 10px;'></div>
-      <div style='border: 1px dotted gray;'>
-        <div class=pnt onClick='toggleHidden(document.getElementById(\"" . $path . "_content\"), null); togglePlusMinusIcon(\"" . $path . "_togglebuttonContents\")'><div class=toggleButton id='" . $path . "_togglebuttonContents'>+</div>File Contents (For reference):</div>
-        <div id='" . $path . "_content'>
-          <div class='inline pnt tiny' onClick='document.getElementById(\"" . $path . "_content_box\").rows=" . (substr_count(nl2br($configValue['contents']), '<br />') +2) . ";'>Maximize</div>
-          <div class='inline pnt tiny' onClick='document.getElementById(\"" . $path . "_content_box\").rows=10;'>Minimize</div>
-          <div><textarea id='" . $path . "_content_box' class=contents readonly rows=10>" . htmlspecialchars($configValue['contents']) . "</textarea></div>
-        </div>
-      </div>
     </div>";
       
       echo "</div>
       <script>
         hide(document.getElementById(\"" . $path . "_customDefinitions\"));
-        hide(document.getElementById(\"" . $path . "_content\"));
       </script>";
     }
     
